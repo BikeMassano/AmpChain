@@ -2,14 +2,14 @@
 
 #include <juce_audio_processors/juce_audio_processors.h>
 #include <juce_gui_basics/juce_gui_basics.h>
-#include "LookAndFeel/KnobLookAndFeel.h"
+#include "../LookAndFeel/KnobLookAndFeel.h"
 
-class GatePanel : public juce::Component,
+class GateComponent : public juce::Component,
                 public juce::AudioProcessorValueTreeState::Listener
 {
 public:
-    GatePanel(juce::AudioProcessorValueTreeState& apvts);
-    ~GatePanel() override;
+    GateComponent(juce::AudioProcessorValueTreeState& apvts);
+    ~GateComponent() override;
 
     void paint(juce::Graphics& g) override;
     void resized() override;
@@ -52,5 +52,5 @@ private:
         std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> bypass;
     } attachments;
 
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(GatePanel)
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(GateComponent)
 };

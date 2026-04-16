@@ -1,7 +1,8 @@
-#include "GatePanel.h"
+#include "GateComponent.h"
 #include "BinaryData.h"
+#include "../ParamIDs.h"
 
-GatePanel::GatePanel(juce::AudioProcessorValueTreeState& apvts)
+GateComponent::GateComponent(juce::AudioProcessorValueTreeState& apvts)
     : apvtsRef(apvts)
 {
     loadImages();
@@ -10,11 +11,11 @@ GatePanel::GatePanel(juce::AudioProcessorValueTreeState& apvts)
     initLabels();
     initAttachments();
 
-    apvtsRef.addParameterListener("bypass", this);
+    apvtsRef.addParameterListener(ParamIDs::gateBypass, this);
 }
 
 //------------------------------------------------------
-void GatePanel::setupKnob(juce::Slider& s, double min, double max)
+void GateComponent::setupKnob(juce::Slider& s, double min, double max)
 {
     s.setSliderStyle(juce::Slider::RotaryHorizontalVerticalDrag);
     s.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
@@ -22,7 +23,7 @@ void GatePanel::setupKnob(juce::Slider& s, double min, double max)
     s.setRange(min, max);
 }
 
-void GatePanel::setupLabel(juce::Label& l, const juce::String& text)
+void GateComponent::setupLabel(juce::Label& l, const juce::String& text)
 {
     l.setText(text, juce::dontSendNotification);
     l.setJustificationType(juce::Justification::centred);
@@ -30,7 +31,7 @@ void GatePanel::setupLabel(juce::Label& l, const juce::String& text)
     l.setColour(juce::Label::textColourId, juce::Colours::black.withAlpha(0.7f));
 }
 
-void GatePanel::loadImages()
+void GateComponent::loadImages()
 {
     bodyImage = juce::ImageCache::getFromMemory(
         BinaryData::body_png,
@@ -68,7 +69,7 @@ void GatePanel::loadImages()
     );
 }
 
-void GatePanel::initButtons()
+void GateComponent::initButtons()
 {
     powerButton.setClickingTogglesState(true);
 
@@ -78,13 +79,13 @@ void GatePanel::initButtons()
         true,
 
         butOffImage, 1.0f, juce::Colours::transparentBlack,
-        butOffImage,  1.0f, juce::Colours::transparentBlack,
-        butOnImage,  1.0f, juce::Colours::transparentBlack
+        butOffImage, 1.0f, juce::Colours::transparentBlack,
+        butOnImage, 1.0f, juce::Colours::transparentBlack
     );
     addAndMakeVisible(powerButton);
 }
 
-void GatePanel::initSliders()
+void GateComponent::initSliders()
 {
     setupKnob(thresholdSlider, -100.0, 0.0);
     setupKnob(attackSlider, 0.1, 200.0);
@@ -101,7 +102,7 @@ void GatePanel::initSliders()
     addAndMakeVisible(attackSlider);
 }
 
-void GatePanel::initLabels()
+void GateComponent::initLabels()
 {
     setupLabel(thresholdLabel, "Threshold (db.)");
     setupLabel(attackLabel, "Attack (ms.)");
@@ -112,23 +113,23 @@ void GatePanel::initLabels()
     addAndMakeVisible(releaseLabel);
 }
 
-void GatePanel::initAttachments()
+void GateComponent::initAttachments()
 {
     attachments.threshold = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
-        apvtsRef, "threshold", thresholdSlider);
+        apvtsRef, ParamIDs::gateThreshold, thresholdSlider);
 
     attachments.attack = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
-        apvtsRef, "attack", attackSlider);
+        apvtsRef, ParamIDs::gateAttack, attackSlider);
 
     attachments.release = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
-        apvtsRef, "release", releaseSlider);
+        apvtsRef, ParamIDs::gateRelease, releaseSlider);
 
     attachments.bypass = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment>(
-        apvtsRef, "bypass", powerButton);
+        apvtsRef, ParamIDs::gateBypass, powerButton);
 }
 
 //------------------------------------------------------
-void GatePanel::parameterChanged(const juce::String&, float)
+void GateComponent::parameterChanged(const juce::String&, float)
 {
     juce::MessageManager::callAsync([this]
     {
@@ -136,7 +137,7 @@ void GatePanel::parameterChanged(const juce::String&, float)
     });
 }
 //------------------------------------------------------
-void GatePanel::paint(juce::Graphics& g)
+void GateComponent::paint(juce::Graphics& g)
 {
     auto area = getLocalBounds().toFloat();
     
@@ -160,7 +161,7 @@ void GatePanel::paint(juce::Graphics& g)
         size
     );
 
-    auto* bypass = apvtsRef.getRawParameterValue("bypass");
+    auto* bypass = apvtsRef.getRawParameterValue(ParamIDs::gateBypass);
     auto isOn = bypass != nullptr && bypass->load() > 0.5f;
 
     g.drawImageWithin(
@@ -173,7 +174,7 @@ void GatePanel::paint(juce::Graphics& g)
     );
 }
 //------------------------------------------------------
-void GatePanel::resized()
+void GateComponent::resized()
 {
     auto area = getLocalBounds().reduced(12);
 
@@ -239,9 +240,9 @@ void GatePanel::resized()
     powerButton.setBounds(buttonBounds);
 }
 //------------------------------------------------------
-GatePanel::~GatePanel()
+GateComponent::~GateComponent()
 {
-    apvtsRef.removeParameterListener("bypass", this);
+    apvtsRef.removeParameterListener(ParamIDs::gateBypass, this);
 
     thresholdSlider.setLookAndFeel(nullptr);
     attackSlider.setLookAndFeel(nullptr);

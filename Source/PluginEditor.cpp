@@ -3,7 +3,7 @@
 
 //==============================================================================
 AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudioProcessor& p)
-    : AudioProcessorEditor(&p), processorRef(p), gatePanel(p.apvts)
+    : AudioProcessorEditor(&p), processorRef(p), gateComponent(p.apvts), compressorComponent(p.apvts)
 {
     juce::ignoreUnused(processorRef);
     setSize(1200, 800);
@@ -13,8 +13,9 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
     setResizable(false, false);
 
     // ================= PANELS =================
-    addAndMakeVisible(gatePanel);
-    addAndMakeVisible(compressionPanel);
+    
+    addAndMakeVisible(gateComponent);
+    addAndMakeVisible(compressorComponent);
     addAndMakeVisible(distPanel);
 }
 
@@ -53,13 +54,12 @@ void AudioPluginAudioProcessorEditor::resized()
     juce::FlexBox mainRow;
     mainRow.flexDirection = juce::FlexBox::Direction::row;
 
-    mainRow.items.add(juce::FlexItem(compressionPanel).withFlex(1).withMargin(10));
-    mainRow.items.add(juce::FlexItem(gatePanel).withFlex(1).withMargin(10));
+    mainRow.items.add(juce::FlexItem(gateComponent).withFlex(1).withMargin(10));
+    mainRow.items.add(juce::FlexItem(compressorComponent).withFlex(1).withMargin(10));
     mainRow.items.add(juce::FlexItem(distPanel).withFlex(1).withMargin(10));
 
     mainRow.performLayout(area.reduced(10));
 
-    // BOTTOM (если будет)
     // bottomLabel.setBounds(bottomBar.reduced(10));
 }
 

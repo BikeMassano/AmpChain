@@ -1,7 +1,8 @@
 #pragma once
 
 #include "PluginProcessor.h"
-#include "GatePanel.h"
+#include "Components/GateComponent.h"
+#include "Components/CompressorComponent.h"
 
 //==============================================================================
 class AudioPluginAudioProcessorEditor final : public juce::AudioProcessorEditor
@@ -19,8 +20,8 @@ private:
     // access the processor object that created it.
     AudioPluginAudioProcessor& processorRef;
 
-    GatePanel gatePanel;
-    juce::Component compressionPanel;
+    GateComponent gateComponent;
+    CompressorComponent compressorComponent;
     juce::Component distPanel;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (AudioPluginAudioProcessorEditor)

@@ -47,9 +47,14 @@ public:
     juce::AudioProcessorValueTreeState apvts;
     static juce::AudioProcessorValueTreeState::ParameterLayout createParameters();
 
-    juce::dsp::NoiseGate<float> noiseGate;
-
 private:
     //==============================================================================
+    juce::dsp::NoiseGate<float> noiseGate;
+    juce::dsp::Compressor<float> compressor;
+    juce::dsp::Gain<float> makeupGain;
+
+    void processGate(juce::AudioBuffer<float>& buffer);
+    void processCompressor(juce::AudioBuffer<float>& buffer);
+
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (AudioPluginAudioProcessor)
 };

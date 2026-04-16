@@ -17,7 +17,7 @@ public:
                           float sliderPosProportional,
                           float rotaryStartAngle,
                           float rotaryEndAngle,
-                          juce::Slider& slider) override
+                          juce::Slider&) override
     {
         auto bounds = juce::Rectangle<int>(x, y, width, height).toFloat();
 

@@ -39,9 +39,12 @@ target_sources(NoiseGate
 	Source/PluginEditor.h
         Source/PluginProcessor.cpp
 	Source/PluginProcessor.h
-	Source/GatePanel.cpp
-	Source/GatePanel.h
+	Source/ParamIDs.h
 	Source/LookAndFeel/KnobLookAndFeel.h
+	Source/Components/GateComponent.cpp
+	Source/Components/GateComponent.h
+	Source/Components/CompressorComponent.cpp
+	Source/Components/CompressorComponent.h
 )
 
 target_compile_definitions(NoiseGate

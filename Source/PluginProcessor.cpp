@@ -1,5 +1,6 @@
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
+#include "ParamIDs.h"
 
 //==============================================================================
 AudioPluginAudioProcessor::AudioPluginAudioProcessor()
@@ -89,23 +90,53 @@ AudioPluginAudioProcessor::createParameters()
 {
     std::vector<std::unique_ptr<juce::RangedAudioParameter>> params;
 
+    // NoiseGate Parameters
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
-        "threshold", "Threshold",
+        ParamIDs::gateThreshold, "Gate Threshold",
         juce::NormalisableRange<float>(-100.0f, 0.0f),
         -50.0f));
 
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
-        "attack", "Attack",
+        ParamIDs::gateAttack, "Gate Attack",
         juce::NormalisableRange<float>(0.1f, 200.0f),
         100.0f));
 
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
-        "release", "Release",
+        ParamIDs::gateRelease, "Gate Release",
         juce::NormalisableRange<float>(10.0f, 1000.0f),
         500.0f));
 
     params.push_back(std::make_unique<juce::AudioParameterBool>(
-        "bypass", "Bypass", false));
+        ParamIDs::gateBypass, "Gate Bypass", false));
+    
+    // Compressor Parameters
+    params.push_back(std::make_unique<juce::AudioParameterFloat>(
+        ParamIDs::compThreshold, "Comp Threshold",
+        juce::NormalisableRange<float>(-60.0f, 0.0f),
+        -30.0f));
+
+    params.push_back(std::make_unique<juce::AudioParameterFloat>(
+        ParamIDs::compRatio, "Comp Ratio",
+        juce::NormalisableRange<float>(1.0f, 20.0f),
+        10.0f));
+
+    params.push_back(std::make_unique<juce::AudioParameterFloat>(
+        ParamIDs::compAttack, "Comp Attack",
+        juce::NormalisableRange<float>(0.1f, 200.0f),
+        100.0f));
+
+    params.push_back(std::make_unique<juce::AudioParameterFloat>(
+        ParamIDs::compRelease, "Comp Release",
+        juce::NormalisableRange<float>(10.0f, 1000.0f),
+        500.0f));
+
+    params.push_back(std::make_unique<juce::AudioParameterFloat>(
+        ParamIDs::compMakeup, "Comp Makeup",
+        juce::NormalisableRange<float>(0.0f, 12.0f),
+        0.0f));
+
+    params.push_back(std::make_unique<juce::AudioParameterBool>(
+        ParamIDs::compBypass, "Comp Bypass", false));
 
     return { params.begin(), params.end() };
 }
@@ -122,6 +153,10 @@ void AudioPluginAudioProcessor::prepareToPlay (double sampleRate, int samplesPer
     spec.maximumBlockSize = (juce::uint32)samplesPerBlock;
     spec.numChannels = (juce::uint32)getTotalNumOutputChannels();
     noiseGate.prepare(spec);
+    compressor.prepare(spec);
+    makeupGain.prepare(spec);
+
+    makeupGain.setRampDurationSeconds(0.02);
 }
 
 void AudioPluginAudioProcessor::releaseResources()
@@ -166,23 +201,8 @@ void AudioPluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
     for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
         buffer.clear (i, 0, buffer.getNumSamples());
 
-    auto bypass = apvts.getRawParameterValue("bypass")->load() > 0.5f;
-
-    if (!bypass)
-        return;
-
-    auto threshold = apvts.getRawParameterValue("threshold")->load();
-    auto attack = apvts.getRawParameterValue("attack")->load();
-    auto release = apvts.getRawParameterValue("release")->load();
-
-    noiseGate.setThreshold(threshold);
-    noiseGate.setAttack(attack);
-    noiseGate.setRelease(release);
-
-    juce::dsp::AudioBlock<float> block(buffer);
-    juce::dsp::ProcessContextReplacing<float> context(block);
-
-    noiseGate.process(context);
+    processGate(buffer);
+    processCompressor(buffer);
 }
 
 //==============================================================================
@@ -217,4 +237,53 @@ void AudioPluginAudioProcessor::setStateInformation (const void* data, int sizeI
 juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter()
 {
     return new AudioPluginAudioProcessor();
+}
+
+void AudioPluginAudioProcessor::processGate(juce::AudioBuffer<float>& buffer)
+{
+    auto bypass = apvts.getRawParameterValue(ParamIDs::gateBypass)->load() > 0.5f;
+
+    if (bypass)
+        return;
+
+    auto threshold = apvts.getRawParameterValue(ParamIDs::gateThreshold)->load();
+    auto attack = apvts.getRawParameterValue(ParamIDs::gateAttack)->load();
+    auto release = apvts.getRawParameterValue(ParamIDs::gateRelease)->load();
+
+    noiseGate.setThreshold(threshold);
+    noiseGate.setAttack(attack);
+    noiseGate.setRelease(release);
+
+    juce::dsp::AudioBlock<float> block(buffer);
+    juce::dsp::ProcessContextReplacing<float> context(block);
+
+    noiseGate.process(context);
+}
+
+void AudioPluginAudioProcessor::processCompressor(juce::AudioBuffer<float>& buffer)
+{
+    auto bypass = apvts.getRawParameterValue(ParamIDs::compBypass)->load() > 0.5f;
+
+    if (bypass)
+        return;
+
+    auto threshold = apvts.getRawParameterValue(ParamIDs::compThreshold)->load();
+    auto ratio = apvts.getRawParameterValue(ParamIDs::compRatio)->load();
+    auto attack = apvts.getRawParameterValue(ParamIDs::compAttack)->load();
+    auto release = apvts.getRawParameterValue(ParamIDs::compRelease)->load();
+    auto makeup = apvts.getRawParameterValue(ParamIDs::compMakeup)->load();
+
+    compressor.setThreshold(threshold);
+    compressor.setRatio(ratio);
+    compressor.setAttack(attack);
+    compressor.setRelease(release);
+
+    auto newGain = juce::Decibels::decibelsToGain(makeup);
+    makeupGain.setGainLinear(newGain);
+
+    juce::dsp::AudioBlock<float> block(buffer);
+    juce::dsp::ProcessContextReplacing<float> context(block);
+
+    compressor.process(context);
+    makeupGain.process(context);
 }
