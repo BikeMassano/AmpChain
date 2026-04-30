@@ -1,30 +1,27 @@
 #include "AmpModule.h"
 #include <fstream>
+#include <BinaryData.h>
 
-AmpModule::AmpModule()
-{
-    
-}
+AmpModule::AmpModule() {}
 
 void AmpModule::prepare(const juce::dsp::ProcessSpec& spec)
 {
-    sampleRate_   = spec.sampleRate;
+    sampleRate_ = spec.sampleRate;
     maxBlockSize_ = (int)spec.maximumBlockSize;
 
     toneStack_.prepare(spec);
-
-    for (auto& net : neuralNetT)
-        net.reset();
-
     updateFilters_();
+
+    neuralNetT[0].reset();
+    neuralNetT[1].reset();
 }
 
 
 void AmpModule::reset()
 {
+    neuralNetT[0].reset();
+    neuralNetT[1].reset();
     toneStack_.reset();
-    for (auto& net : neuralNetT)
-        net.reset();
 }
 
 void AmpModule::process(const juce::dsp::ProcessContextReplacing<float>& context)
@@ -33,70 +30,44 @@ void AmpModule::process(const juce::dsp::ProcessContextReplacing<float>& context
         return;
 
     auto& block = context.getOutputBlock();
-    const int numChannels = (int)block.getNumChannels();
-    const int numSamples  = (int)block.getNumSamples();
 
-    for (int ch = 0; ch < juce::jmin(numChannels, 2); ++ch)
+    for (int ch = 0; ch < (int)block.getNumChannels(); ++ch)
     {
-        auto* data = block.getChannelPointer(ch);
-        for (int i = 0; i < numSamples; ++i)
+        auto* x = block.getChannelPointer(ch);
+        for (int n = 0; n < (int)block.getNumSamples(); ++n)
         {
-            float inData[2] = { data[i], gainNorm_ };
-            float out = neuralNetT[ch].forward(inData);
-
-            data[i] = out;
+            float input[] = { x[n], gainNorm_ };
+            x[n] = neuralNetT[ch].forward(input);
         }
     }
 
     toneStack_.process(context);
+
 }
 
-bool AmpModule::loadModel(const juce::String& path)
+bool AmpModule::loadModel()
 {
-    auto file = juce::File(path);
-    if (!file.existsAsFile()) return false;
-
-    std::ifstream jsonStream(file.getFullPathName().toStdString());
-    nlohmann::json modelJson;
-    jsonStream >> modelJson;
-
-    for (int ch = 0; ch < 2; ++ch)
+    try
     {
-        neuralNetT[ch].parseJson(modelJson);
-        neuralNetT[ch].reset();
-    }
-    return true;
-}
+        juce::MemoryInputStream jsonStream(
+            BinaryData::model_json,
+            BinaryData::model_jsonSize,
+            false
+        );
 
-bool AmpModule::loadModelFromMemory(const void* data, size_t size)
+        auto jsonString = jsonStream.readEntireStreamAsString();
+        auto jsonInput = nlohmann::json::parse(jsonString.toStdString());
+
+        neuralNetT[0].parseJson(jsonInput);
+        neuralNetT[1].parseJson(jsonInput);
+        DBG("model loaded!");
+        return true;
+    }
+    catch (...) 
     {
-        try
-        {
-            auto json = nlohmann::json::parse(
-                static_cast<const char*>(data),
-                static_cast<const char*>(data) + size
-            );
-
-            for (int ch = 0; ch < 2; ++ch)
-            {
-                neuralNetT[ch].parseJson(json);;
-                neuralNetT[ch].reset();
-            }
-            DBG("model loaded!");
-            return true;
-        }
-        catch (const std::exception& e)
-        {
-            DBG("model not loaded!");
-            DBG(e.what());
-            return false;
-        }
+        DBG("model not loaded!");
+        return false; 
     }
-
-void AmpModule::clearModel()
-{
-    for (auto& net : neuralNetT)
-        net.reset();
 }
 
 double AmpModule::getModelSampleRate() const
@@ -107,20 +78,37 @@ double AmpModule::getModelSampleRate() const
 void AmpModule::setGain(float val)
 {
     // если gain идёт от 0 до 10 dB → нормируем
-    gainNorm_ = juce::jlimit(0.f, 1.f, val / 10.f);
+    gainNorm_ = val;
 }
 
-void AmpModule::setLevel(float db)   
+void AmpModule::setLevel(float val)
 {
+    float db = (val - 5.f) * (24.f / 5.f); // диапазон ±24 dB
     toneStack_.get<outputGainIndex>().setGainDecibels(db);
 }
 
 void AmpModule::setBypassed(bool v) { bypassed_ = v; }
 
-void AmpModule::setBass(float db) { bassVal_ = db; updateFilters_(); }
-void AmpModule::setMid(float db) { midVal_ = db; updateFilters_(); }
-void AmpModule::setTreble(float db) { trebleVal_ = db; updateFilters_(); }
-void AmpModule::setPresence(float db) { presenceVal_ = db; updateFilters_(); }
+void AmpModule::setBass(float val) 
+{ 
+    bassVal_ = (val - 5.f) * (12.f / 5.f);
+    updateFilters_();
+}
+void AmpModule::setMid(float val)
+{
+    midVal_ = (val - 5.f) * (10.f / 5.f);
+    updateFilters_();
+}
+void AmpModule::setTreble(float val)
+{
+    trebleVal_ = (val - 5.f) * (12.f / 5.f);
+    updateFilters_();
+}
+void AmpModule::setPresence(float val)
+{
+    presenceVal_ = (val - 5.f) * (8.f / 5.f);
+    updateFilters_();
+}
 
 void AmpModule::updateFilters_()
 {
@@ -130,28 +118,28 @@ void AmpModule::updateFilters_()
     // Bass: low-shelf ±12 дБ вокруг 250 Гц
     {
         const float freq  = 250.f;
-        const float gainDB = juce::jmap(bassVal_, 0.f, 1.f, -12.f, 12.f);
+        const float gainDB = bassVal_;
         *toneStack_.get<bassFilterIndex>().state =
             *FilterCoefs::makeLowShelf(sr, freq, 0.707f, juce::Decibels::decibelsToGain(gainDB));
     }
     // Mid: peak ±10 дБ на 800 Гц
     {
         const float freq  = 800.f;
-        const float gainDB = juce::jmap(midVal_, 0.f, 1.f, -10.f, 10.f);
+        const float gainDB = midVal_;
         *toneStack_.get<midFilterIndex>().state =
             *FilterCoefs::makePeakFilter(sr, freq, 0.9f, juce::Decibels::decibelsToGain(gainDB));
     }
     // Treble: high-shelf ±12 дБ от 3.5 кГц
     {
         const float freq  = 3500.f;
-        const float gainDB = juce::jmap(trebleVal_, 0.f, 1.f, -12.f, 12.f);
+        const float gainDB = trebleVal_;
         *toneStack_.get<trebleFilterIndex>().state =
             *FilterCoefs::makeHighShelf(sr, freq, 0.707f, juce::Decibels::decibelsToGain(gainDB));
     }
     // Presence: high-shelf ±8 дБ от 3 кГц (post)
     {
         const float freq  = 3000.f;
-        const float gainDB = juce::jmap(presenceVal_, 0.f, 1.f, -8.f, 8.f);
+        const float gainDB = presenceVal_;
         *toneStack_.get<presenceFilterIndex>().state =
             *FilterCoefs::makeHighShelf(sr, freq, 0.707f, juce::Decibels::decibelsToGain(gainDB));
     }

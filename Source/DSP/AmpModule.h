@@ -14,10 +14,7 @@ public:
     void process(const juce::dsp::ProcessContextReplacing<float>& context);
 
     // загрузка ИИ модели
-    bool loadModel(const juce::String& path);
-    void clearModel();
-
-    bool loadModelFromMemory(const void* data, size_t size);
+    bool loadModel();
 
     void setGain (float val);
     void setBass (float db);
@@ -51,16 +48,10 @@ private:
         juce::dsp::Gain<float>
     > toneStack_;
 
-    // Нейросетевая модель усилителя, архитектура фиксирована на этапе компиляции.
-    // Фиксированная архитектура в разы быстрее динамической.
-    // Вход: [аудиосэмпл, нормализованное положение gain [0..1]]
-    // Выход: обработанный сэмпл
-    // Архитектура: GRU(2→32) → Dense(32→1)
-    // Массив [2] — отдельный экземпляр на каждый канал (L/R)
-    RTNeural::ModelT<float, 2, 1,
+    RTNeural::ModelT<float, 2, 2,
         RTNeural::DenseT<float, 2, 16>,
         RTNeural::TanhActivationT<float, 16>,
-        RTNeural::Conv1DT<float, 16, 16, 3, 1>,
+        RTNeural::Conv1DT<float, 16, 16, 3, 2>,
         RTNeural::TanhActivationT<float, 16>,
         RTNeural::GRULayerT<float, 16, 48>,
         RTNeural::DenseT<float, 48, 1>

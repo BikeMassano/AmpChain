@@ -48,16 +48,16 @@ private:
     // LookAndFeel
     std::unique_ptr<KnobLookAndFeel> knobLnf;
 
-    // struct Attachments
-    // {
-    //     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> bass;
-    //     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> mid;
-    //     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> treble;
-    //     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> level;
-    //     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> gain;
-    //     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> presence;
-    //     std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> bypass;
-    // } attachments;
+    struct Attachments
+    {
+        std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> bass;
+        std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> mid;
+        std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> treble;
+        std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> level;
+        std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> gain;
+        std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> presence;
+        std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> bypass;
+    } attachments;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(AmpComponent)
 };

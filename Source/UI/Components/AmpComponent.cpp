@@ -11,7 +11,7 @@ AmpComponent::AmpComponent(juce::AudioProcessorValueTreeState& apvts)
     initLabels();
     initAttachments();
 
-    apvtsRef.addParameterListener(ParamIDs::gateBypass, this);
+    apvtsRef.addParameterListener(ParamIDs::ampBypass, this);
 }
 
 //------------------------------------------------------
@@ -136,26 +136,26 @@ void AmpComponent::initLabels()
 
 void AmpComponent::initAttachments()
 {
-    // attachments.bass = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
-    //     apvtsRef, ParamIDs::ampBass, bassSlider);
+    attachments.bass = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
+        apvtsRef, ParamIDs::ampBass, bassSlider);
 
-    // attachments.mid = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
-    //     apvtsRef, ParamIDs::ampMid, midSlider);
+    attachments.mid = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
+        apvtsRef, ParamIDs::ampMid, midSlider);
     
-    // attachments.treble= std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
-    //     apvtsRef, ParamIDs::ampTreble, trebleSlider);
+    attachments.treble= std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
+        apvtsRef, ParamIDs::ampTreble, trebleSlider);
     
-    // attachments.level = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
-    //     apvtsRef, ParamIDs::ampLevel, levelSlider);
+    attachments.level = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
+        apvtsRef, ParamIDs::ampLevel, levelSlider);
 
-    // attachments.gain = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
-    //     apvtsRef, ParamIDs::ampGain, gainSlider);
+    attachments.gain = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
+        apvtsRef, ParamIDs::ampGain, gainSlider);
 
-    // attachments.presence = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
-    //     apvtsRef, ParamIDs::ampPresence, presenceSlider);
+    attachments.presence = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
+        apvtsRef, ParamIDs::ampPresence, presenceSlider);
 
-    // attachments.bypass = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment>(
-    //     apvtsRef, ParamIDs::ampBypass, powerButton);
+    attachments.bypass = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment>(
+        apvtsRef, ParamIDs::ampBypass, powerButton);
 }
 
 //------------------------------------------------------
