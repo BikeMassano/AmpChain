@@ -3,6 +3,7 @@ cmake_minimum_required(VERSION 3.22)
 project(AmpChain VERSION 0.0.1)
 
 add_subdirectory(JUCE)
+add_subdirectory(RTNeural)
 
 file(GLOB ASSET_FILES CONFIGURE_DEPENDS
 	${CMAKE_CURRENT_SOURCE_DIR}/models/*.json
@@ -66,6 +67,7 @@ target_compile_definitions(AmpChain
 
 target_link_libraries(AmpChain
     PRIVATE
+	RTNeural
 	Assets
         juce::juce_audio_processors
         juce::juce_gui_basics

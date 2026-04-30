@@ -15,6 +15,7 @@ public:
     void process(const juce::dsp::ProcessContextReplacing<float>& context);
 
     void setEnabled(bool e);
+    bool getEnabled();
     void setMode(MonoMode m);
 private:
     std::atomic<bool> enabled_ = false;

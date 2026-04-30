@@ -2,6 +2,7 @@
 #include <BinaryData.h>
 #include "PluginEditor.h"
 #include "ParamIDs.h"
+#include <juce_core/juce_core.h>
 
 //==============================================================================
 AudioPluginAudioProcessor::AudioPluginAudioProcessor()
@@ -16,6 +17,43 @@ AudioPluginAudioProcessor::AudioPluginAudioProcessor()
                     apvts(*this, nullptr, "PARAMS", createParameters())
 {
     initParameters_();
+
+    try
+    {
+        juce::MemoryInputStream jsonStream(
+            BinaryData::model_json,
+            BinaryData::model_jsonSize,
+            false
+        );
+
+        auto jsonString = jsonStream.readEntireStreamAsString();
+
+        DBG("Model JSON loaded, size: " << jsonString.length());
+
+        auto jsonInput = nlohmann::json::parse(jsonString.toStdString());
+
+        DBG("JSON parsed successfully");
+
+        neuralNetT[0].parseJson(jsonInput);
+        neuralNetT[1].parseJson(jsonInput);
+
+        DBG("Neural nets initialized");
+    }
+    catch (const nlohmann::json::exception& e)
+    {
+        DBG("JSON error: " << e.what());
+        jassertfalse;
+    }
+    catch (const std::exception& e)
+    {
+        DBG("STD error: " << e.what());
+        jassertfalse;
+    }
+    catch (...)
+    {
+        DBG("Unknown error while loading model JSON");
+        jassertfalse;
+    }
 }
 
 AudioPluginAudioProcessor::~AudioPluginAudioProcessor()
@@ -159,39 +197,39 @@ AudioPluginAudioProcessor::createParameters()
     params.push_back(std::make_unique<juce::AudioParameterBool>(
         ParamIDs::distBypass, "Dist Bypass", false));
 
-    // Amp Parameters
-    params.push_back(std::make_unique<juce::AudioParameterFloat>(
-        ParamIDs::ampBass, "Amp Bass",
-        juce::NormalisableRange<float>(0.0f, 10.0f),
-        5.0f));
+    // // Amp Parameters
+    // params.push_back(std::make_unique<juce::AudioParameterFloat>(
+    //     ParamIDs::ampBass, "Amp Bass",
+    //     juce::NormalisableRange<float>(0.0f, 10.0f),
+    //     5.0f));
 
-    params.push_back(std::make_unique<juce::AudioParameterFloat>(
-        ParamIDs::ampMid, "Amp Mid",
-        juce::NormalisableRange<float>(0.0f, 10.0f),
-        5.0f));
+    // params.push_back(std::make_unique<juce::AudioParameterFloat>(
+    //     ParamIDs::ampMid, "Amp Mid",
+    //     juce::NormalisableRange<float>(0.0f, 10.0f),
+    //     5.0f));
 
-    params.push_back(std::make_unique<juce::AudioParameterFloat>(
-        ParamIDs::ampTreble, "Amp Treble",
-        juce::NormalisableRange<float>(0.0f, 10.0f),
-        5.0f));
+    // params.push_back(std::make_unique<juce::AudioParameterFloat>(
+    //     ParamIDs::ampTreble, "Amp Treble",
+    //     juce::NormalisableRange<float>(0.0f, 10.0f),
+    //     5.0f));
 
-    params.push_back(std::make_unique<juce::AudioParameterFloat>(
-        ParamIDs::ampGain, "Amp Gain",
-        juce::NormalisableRange<float>(0.0f, 10.0f),
-        5.0f));
+    // params.push_back(std::make_unique<juce::AudioParameterFloat>(
+    //     ParamIDs::ampGain, "Amp Gain",
+    //     juce::NormalisableRange<float>(0.0f, 10.0f),
+    //     5.0f));
 
-    params.push_back(std::make_unique<juce::AudioParameterFloat>(
-        ParamIDs::ampPresence, "Amp Presence",
-        juce::NormalisableRange<float>(0.0f, 10.0f),
-        5.0f));
+    // params.push_back(std::make_unique<juce::AudioParameterFloat>(
+    //     ParamIDs::ampPresence, "Amp Presence",
+    //     juce::NormalisableRange<float>(0.0f, 10.0f),
+    //     5.0f));
 
-    params.push_back(std::make_unique<juce::AudioParameterFloat>(
-        ParamIDs::ampLevel, "Amp Level",
-        juce::NormalisableRange<float>(0.0f, 10.0f),
-        5.0f));
+    // params.push_back(std::make_unique<juce::AudioParameterFloat>(
+    //     ParamIDs::ampLevel, "Amp Level",
+    //     juce::NormalisableRange<float>(0.0f, 10.0f),
+    //     5.0f));
 
-    params.push_back(std::make_unique<juce::AudioParameterBool>(
-        ParamIDs::ampBypass, "Amp Bypass", false));
+    // params.push_back(std::make_unique<juce::AudioParameterBool>(
+    //     ParamIDs::ampBypass, "Amp Bypass", false));
 
     // Cab Parameters
 
@@ -225,16 +263,8 @@ void AudioPluginAudioProcessor::prepareToPlay (double sampleRate, int samplesPer
 
     chain_.prepare(spec);
 
-    // Грузим модель после prepare, чтобы sampleRate уже был известен
-    if (!modelLoaded_)
-    {
-        const juce::String modelPath = "C:\\Users\\yurij\\Desktop\\Projects\\AudioPlugins\\NoiseGate\\models\\APP-6505Plus-MidForward-Gain-04.nam";
-        if (chain_.get<ampIndex>().loadModel(modelPath))
-            DBG("NAM model loaded OK");
-        else
-            DBG("NAM model load FAILED");
-        modelLoaded_ = true;
-    }
+    neuralNetT[0].reset();
+    neuralNetT[1].reset();
 }
 
 void AudioPluginAudioProcessor::releaseResources()
@@ -310,7 +340,6 @@ void AudioPluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
     auto& gate = chain_.get<gateIndex>();
     auto& comp = chain_.get<compressorIndex>();
     auto& dist = chain_.get<distortionIndex>();
-    auto& amp = chain_.get<ampIndex>();
     auto& cab = chain_.get<cabIndex>();
 
     // Gate
@@ -334,13 +363,19 @@ void AudioPluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
     dist.setBypassed(distBypass_->load() < 0.5f);
 
     // Amp
-    amp.setGain    (juce::jmap(ampGain_->load(),     0.f, 10.f, -20.f, 20.f));
-    amp.setBass    (juce::jmap(ampBass_->load(),     0.f, 10.f,  0.f,  1.f));
-    amp.setMid     (juce::jmap(ampMid_->load(),      0.f, 10.f,  0.f,  1.f));
-    amp.setTreble  (juce::jmap(ampTreble_->load(),   0.f, 10.f,  0.f,  1.f));
-    amp.setPresence(juce::jmap(ampPresence_->load(), 0.f, 10.f,  0.f,  1.f));
-    amp.setLevel   (juce::jmap(ampLevel_->load(),    0.f, 10.f, -20.f, 20.f));
-    amp.setBypassed(ampBypass_->load() < 0.5f);
+    for (int ch = 0; ch < buffer.getNumChannels(); ++ch)
+    {
+        auto* x = buffer.getWritePointer (ch);
+        for (int n = 0; n < buffer.getNumSamples(); ++n)
+        {
+            // float input[] = { x[n] };
+            // x[n] = neuralNetT[ch].forward (input);
+
+            float gainValue = 5.0f;
+            float input[] = { x[n], gainValue };
+            x[n] = neuralNetT[ch].forward(input);
+        }
+    }
 
     // Cab
     cab.setBypassed(cabBypass_->load() < 0.5f);
@@ -454,14 +489,6 @@ void AudioPluginAudioProcessor::initParameters_()
     distLevel_ = apvts.getRawParameterValue(ParamIDs::distLevel);
     distDist_  = apvts.getRawParameterValue(ParamIDs::distDist);
     distBypass_ = apvts.getRawParameterValue(ParamIDs::distBypass);
-
-    ampBass_     = apvts.getRawParameterValue(ParamIDs::ampBass);
-    ampMid_      = apvts.getRawParameterValue(ParamIDs::ampMid);
-    ampTreble_   = apvts.getRawParameterValue(ParamIDs::ampTreble);
-    ampGain_     = apvts.getRawParameterValue(ParamIDs::ampGain);
-    ampPresence_ = apvts.getRawParameterValue(ParamIDs::ampPresence);
-    ampLevel_    = apvts.getRawParameterValue(ParamIDs::ampLevel);
-    ampBypass_  = apvts.getRawParameterValue(ParamIDs::ampBypass);
 
     cabBypass_  = apvts.getRawParameterValue(ParamIDs::cabBypass);
 }

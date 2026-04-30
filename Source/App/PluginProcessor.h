@@ -81,17 +81,17 @@ private:
     std::atomic<float>* distLevel_ = nullptr;
     std::atomic<float>* distDist_ = nullptr;
 
-    std::atomic<float>* ampBass_ = nullptr;
-    std::atomic<float>* ampMid_ = nullptr;
-    std::atomic<float>* ampTreble_ = nullptr;
-    std::atomic<float>* ampGain_ = nullptr;
-    std::atomic<float>* ampPresence_ = nullptr;
-    std::atomic<float>* ampLevel_ = nullptr;
+    // std::atomic<float>* ampBass_ = nullptr;
+    // std::atomic<float>* ampMid_ = nullptr;
+    // std::atomic<float>* ampTreble_ = nullptr;
+    // std::atomic<float>* ampGain_ = nullptr;
+    // std::atomic<float>* ampPresence_ = nullptr;
+    // std::atomic<float>* ampLevel_ = nullptr;
 
     std::atomic<float>* gateBypass_ = nullptr;
     std::atomic<float>* compBypass_ = nullptr;
     std::atomic<float>* distBypass_ = nullptr;
-    std::atomic<float>* ampBypass_ = nullptr;
+    //std::atomic<float>* ampBypass_ = nullptr;
 
     std::atomic<float>* cabBypass_ = nullptr;
 
@@ -102,16 +102,32 @@ private:
         gateIndex,          // [0]
         compressorIndex,    // [1]
         distortionIndex,    // [2]
-        ampIndex,           // [3]
         cabIndex            // [4]
     };
     juce::dsp::ProcessorChain<
         GateModule,
         CompressorModule,
         DistortionModule,
-        AmpModule,
         CabModule
     > chain_;
+
+    RTNeural::ModelT<float, 2, 2,
+        RTNeural::DenseT<float, 2, 16>,
+        RTNeural::TanhActivationT<float, 16>,
+        RTNeural::Conv1DT<float, 16, 16, 3, 2>,
+        RTNeural::TanhActivationT<float, 16>,
+        RTNeural::GRULayerT<float, 16, 48>,
+        RTNeural::DenseT<float, 48, 1>
+    > neuralNetT[2];
+
+    // RTNeural::ModelT<float, 2, 2,
+    //     RTNeural::DenseT<float, 2, 16>,
+    //     RTNeural::TanhActivationT<float, 16>,
+    //     RTNeural::Conv1DT<float, 16, 16, 3, 2>,
+    //     RTNeural::TanhActivationT<float, 16>,
+    //     RTNeural::GRULayerT<float, 16, 48>,
+    //     RTNeural::DenseT<float, 48, 1>
+    // > neuralNetT[2];
 
     juce::LinearSmoothedValue<float> rmsInLevelLeft_, rmsInLevelRight_, rmsOutLevelLeft_, rmsOutLevelRight_;
 

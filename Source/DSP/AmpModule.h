@@ -2,6 +2,7 @@
 
 #include <juce_audio_processors/juce_audio_processors.h>
 #include <juce_dsp/juce_dsp.h>
+#include <RTNeural/RTNeural.h>
 
 class AmpModule final
 {
@@ -16,7 +17,9 @@ public:
     bool loadModel(const juce::String& path);
     void clearModel();
 
-    void setGain (float db);
+    bool loadModelFromMemory(const void* data, size_t size);
+
+    void setGain (float val);
     void setBass (float db);
     void setMid (float db);
     void setTreble (float db);
@@ -28,42 +31,46 @@ public:
     double getModelSampleRate() const;
 
 private:
-    enum preChainIndex {
-        inputGainIndex,     // [0]
-        bassFilterIndex,    // [1]
-        midFilterIndex,     // [2]
-        trebleFilterIndex,  // [3]
-    };
-
-    enum postChainIndex {
-        presenceFilterIndex, // [0]
-        outputGainIndex      // [1]
+    enum toneStackIndex {
+        bassFilterIndex,    // [0]
+        midFilterIndex,     // [1]
+        trebleFilterIndex,  // [2]
+        presenceFilterIndex, // [3]
+        outputGainIndex      // [4]
     };
 
     using Filter = juce::dsp::IIR::Filter<float>;
     using FilterCoefs = juce::dsp::IIR::Coefficients<float>;
     using Duplicator = juce::dsp::ProcessorDuplicator<Filter, FilterCoefs>;
 
-    // Pre-EQ + input gain
     juce::dsp::ProcessorChain<
-        juce::dsp::Gain<float>,
         Duplicator,
         Duplicator,
-        Duplicator
-    > preChain_;
-
-    juce::dsp::ProcessorChain<
+        Duplicator,
         Duplicator,
         juce::dsp::Gain<float>
-    > postChain_;
+    > toneStack_;
 
-    std::vector<float>  namInputBuf_;
-    std::vector<float>  namOutputBuf_;
+    // Нейросетевая модель усилителя, архитектура фиксирована на этапе компиляции.
+    // Фиксированная архитектура в разы быстрее динамической.
+    // Вход: [аудиосэмпл, нормализованное положение gain [0..1]]
+    // Выход: обработанный сэмпл
+    // Архитектура: GRU(2→32) → Dense(32→1)
+    // Массив [2] — отдельный экземпляр на каждый канал (L/R)
+    RTNeural::ModelT<float, 2, 1,
+        RTNeural::DenseT<float, 2, 16>,
+        RTNeural::TanhActivationT<float, 16>,
+        RTNeural::Conv1DT<float, 16, 16, 3, 1>,
+        RTNeural::TanhActivationT<float, 16>,
+        RTNeural::GRULayerT<float, 16, 48>,
+        RTNeural::DenseT<float, 48, 1>
+    > neuralNetT[2];
 
     double sampleRate_ = 48000.;
     int maxBlockSize_ = 512;
     std::atomic<bool> bypassed_ = false;
 
+    float gainNorm_ = 0.5f;
     float bassVal_= 0.5f;
     float midVal_= 0.5f;
     float trebleVal_= 0.5f;

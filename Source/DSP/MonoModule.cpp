@@ -37,4 +37,5 @@ void MonoModule::process(const juce::dsp::ProcessContextReplacing<float>& contex
 }
 
 void MonoModule::setEnabled(bool e) { enabled_ = e; }
+bool MonoModule::getEnabled() { return enabled_; }
 void MonoModule::setMode(MonoMode m) { mode_ = m; }
