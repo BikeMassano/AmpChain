@@ -2,6 +2,9 @@
 
 #include <juce_audio_processors/juce_audio_processors.h>
 #include <juce_dsp/juce_dsp.h>
+
+#include "PresetManager.h"
+
 #include "../DSP/GateModule.h"
 #include "../DSP/CompressorModule.h"
 #include "../DSP/DistortionModule.h"
@@ -49,6 +52,8 @@ public:
     void getStateInformation (juce::MemoryBlock& destData) override;
     void setStateInformation (const void* data, int sizeInBytes) override;
 
+    PresetManager& getPresetManager() { return *presetManager_; }
+
     float getRmsInValue(const int channel) const;
     float getRmsOutValue(const int channel) const;
 
@@ -62,6 +67,8 @@ public:
     void loadCabIR(const juce::File& file);
 
 private:
+    std::unique_ptr<PresetManager> presetManager_;
+
     void initParameters_();
 
     bool modelLoaded_ = false;

@@ -1,9 +1,13 @@
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
 cmake_minimum_required(VERSION 3.22)
 
 project(AmpChain VERSION 0.0.1)
 
-add_subdirectory(JUCE)
-add_subdirectory(RTNeural)
+add_subdirectory(modules/JUCE)
+add_subdirectory(modules/RTNeural)
 
 file(GLOB ASSET_FILES CONFIGURE_DEPENDS
 	${CMAKE_CURRENT_SOURCE_DIR}/models/*.json

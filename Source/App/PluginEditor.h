@@ -34,6 +34,12 @@ private:
 
     juce::Component topBar, bottomBar;
 
+    juce::ComboBox presetBox;
+    juce::TextEditor presetNameEditor;
+
+    juce::TextButton savePresetButton, deletePresetButton;
+    juce::TextButton prevPresetButton, nextPresetButton;
+
     LevelMeterComponent leftInMeter, rightInMeter, leftOutMeter, rightOutMeter;
 
     juce::TextButton ampButton, pedalButton, cabButton, monoButton;

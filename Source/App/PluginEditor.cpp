@@ -18,6 +18,76 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
     addAndMakeVisible(topBar);
     addAndMakeVisible(bottomBar);
 
+    // ================= PRESETS =================
+    addAndMakeVisible(presetBox);
+    addAndMakeVisible(presetNameEditor);
+
+    addAndMakeVisible(savePresetButton);
+    addAndMakeVisible(deletePresetButton);
+    addAndMakeVisible(prevPresetButton);
+    addAndMakeVisible(nextPresetButton);
+
+    savePresetButton.setButtonText("Save");
+    deletePresetButton.setButtonText("Del");
+    prevPresetButton.setButtonText("<");
+    nextPresetButton.setButtonText(">");
+
+    presetNameEditor.setText("");
+    presetNameEditor.setSelectAllWhenFocused(true);
+
+    // заполнение списка
+    auto presets = processorRef.getPresetManager().getAllPresets();
+    presetBox.clear();
+
+    for (int i = 0; i < presets.size(); ++i)
+        presetBox.addItem(presets[i], i + 1);
+
+    savePresetButton.onClick = [this]()
+    {
+        auto name = presetNameEditor.getText().trim();
+
+        processorRef.getPresetManager().savePreset(name);
+
+        presetBox.addItem(name, presetBox.getNumItems() + 1);
+    };
+
+    deletePresetButton.onClick = [this]()
+    {
+        auto name = presetBox.getText();
+
+        processorRef.getPresetManager().deletePreset(name);
+
+        presetBox.clear();
+        auto presets = processorRef.getPresetManager().getAllPresets();
+
+        for (int i = 0; i < presets.size(); ++i)
+            presetBox.addItem(presets[i], i + 1);
+    };
+
+    presetBox.onChange = [this]()
+    {
+        auto name = presetBox.getText();
+        processorRef.getPresetManager().loadPreset(name);
+    };
+
+    prevPresetButton.onClick = [this]()
+    {
+        int index = processorRef.getPresetManager().loadPreviousPreset();
+
+        auto presets = processorRef.getPresetManager().getAllPresets();
+        if (index >= 0)
+            presetBox.setSelectedItemIndex(index);
+    };
+
+    nextPresetButton.onClick = [this]()
+    {
+        int index = processorRef.getPresetManager().loadNextPreset();
+
+        auto presets = processorRef.getPresetManager().getAllPresets();
+        if (index >= 0)
+            presetBox.setSelectedItemIndex(index);
+    };
+
     // ================= RMS METERS =================
     addAndMakeVisible(leftInMeter);
     addAndMakeVisible(rightInMeter);
@@ -165,6 +235,17 @@ void AudioPluginAudioProcessorEditor::resized()
 
     topBar.setBounds(topArea);
     auto buttonArea = topArea.removeFromRight(300).reduced(10);
+
+    auto presetArea = topArea.removeFromLeft(400).reduced(10);
+
+    prevPresetButton.setBounds(presetArea.removeFromLeft(30));
+    nextPresetButton.setBounds(presetArea.removeFromLeft(30));
+
+    presetBox.setBounds(presetArea.removeFromLeft(180));
+    presetNameEditor.setBounds(presetArea.removeFromLeft(120));
+
+    savePresetButton.setBounds(presetArea.removeFromLeft(60));
+    deletePresetButton.setBounds(presetArea.removeFromLeft(60));
 
     pedalButton.setBounds(buttonArea.removeFromLeft(90));
     ampButton.setBounds(buttonArea.removeFromLeft(90));

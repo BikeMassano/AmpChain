@@ -1,9 +1,12 @@
 git submodule add https://github.com/jatinchowdhury18/RTNeural.git RTNeural
 git submodule update --init --recursive
 
+
+x64 native tools command prompt
+C:\Users\yurij\Desktop\Projects\AudioPlugins\NoiseGate
 cd /c/Users/yurij/Desktop/Projects/AudioPlugins/NoiseGate
 
-cmake -S . -B build
+cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
 cmake --build build
 
 cmake --build build --config Release

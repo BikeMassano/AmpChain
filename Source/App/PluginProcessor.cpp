@@ -16,6 +16,10 @@ AudioPluginAudioProcessor::AudioPluginAudioProcessor()
                        ),
                     apvts(*this, nullptr, "PARAMS", createParameters())
 {
+    apvts.state.setProperty(PresetManager::presetNameKey, "", nullptr);
+    presetManager_ = std::make_unique<PresetManager>(apvts);
+
+
     initParameters_();
     chain_.get<ampIndex>().loadModel();
 }
@@ -226,6 +230,7 @@ void AudioPluginAudioProcessor::prepareToPlay (double sampleRate, int samplesPer
     spec.numChannels = (juce::uint32)getTotalNumOutputChannels();
 
     chain_.prepare(spec);
+    setLatencySamples(512);
 }
 
 void AudioPluginAudioProcessor::releaseResources()
@@ -382,17 +387,19 @@ juce::AudioProcessorEditor* AudioPluginAudioProcessor::createEditor()
 //==============================================================================
 void AudioPluginAudioProcessor::getStateInformation (juce::MemoryBlock& destData)
 {
-    // You should use this method to store your parameters in the memory block.
-    // You could do that either as raw data, or use the XML or ValueTree classes
-    // as intermediaries to make it easy to save and load complex data.
-    juce::ignoreUnused (destData);
+    const auto state = apvts.copyState();
+    const auto xml = state.createXml();
+    copyXmlToBinary(*xml, destData);
 }
 
 void AudioPluginAudioProcessor::setStateInformation (const void* data, int sizeInBytes)
 {
-    // You should use this method to restore your parameters from this memory block,
-    // whose contents will have been created by the getStateInformation() call.
-    juce::ignoreUnused (data, sizeInBytes);
+    const auto xmlState = getXmlFromBinary(data, sizeInBytes);
+    if (xmlState == nullptr)
+        return;
+    const auto newTree = juce::ValueTree::fromXml(*xmlState);
+    if (newTree.isValid())
+        apvts.replaceState(newTree);
 }
 
 //==============================================================================
