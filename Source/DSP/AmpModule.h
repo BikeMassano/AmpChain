@@ -4,68 +4,71 @@
 #include <juce_dsp/juce_dsp.h>
 #include <RTNeural/RTNeural.h>
 
-class AmpModule final
+namespace DSP
 {
-public:
-    AmpModule();
+    class AmpModule final
+    {
+    public:
+        AmpModule();
 
-    void prepare(const juce::dsp::ProcessSpec& spec);
-    void reset();
-    void process(const juce::dsp::ProcessContextReplacing<float>& context);
+        void prepare(const juce::dsp::ProcessSpec& spec);
+        void reset();
+        void process(const juce::dsp::ProcessContextReplacing<float>& context);
 
-    // загрузка ИИ модели
-    bool loadModel();
+        // загрузка ИИ модели
+        bool loadModel();
 
-    void setGain (float val);
-    void setBass (float db);
-    void setMid (float db);
-    void setTreble (float db);
-    void setPresence (float db);
-    void setLevel (float db);
-    void setBypassed (bool v);
+        void setGain (float val);
+        void setBass (float db);
+        void setMid (float db);
+        void setTreble (float db);
+        void setPresence (float db);
+        void setLevel (float db);
+        void setBypassed (bool v);
 
-    //bool hasModel() const { return model_ != nullptr; }
-    double getModelSampleRate() const;
+        //bool hasModel() const { return model_ != nullptr; }
+        double getModelSampleRate() const;
 
-private:
-    enum toneStackIndex {
-        bassFilterIndex,    // [0]
-        midFilterIndex,     // [1]
-        trebleFilterIndex,  // [2]
-        presenceFilterIndex, // [3]
-        outputGainIndex      // [4]
+    private:
+        enum toneStackIndex {
+            bassFilterIndex,    // [0]
+            midFilterIndex,     // [1]
+            trebleFilterIndex,  // [2]
+            presenceFilterIndex, // [3]
+            outputGainIndex      // [4]
+        };
+
+        using Filter = juce::dsp::IIR::Filter<float>;
+        using FilterCoefs = juce::dsp::IIR::Coefficients<float>;
+        using Duplicator = juce::dsp::ProcessorDuplicator<Filter, FilterCoefs>;
+
+        juce::dsp::ProcessorChain<
+            Duplicator,
+            Duplicator,
+            Duplicator,
+            Duplicator,
+            juce::dsp::Gain<float>
+        > toneStack_;
+
+        RTNeural::ModelT<float, 2, 2,
+            RTNeural::DenseT<float, 2, 16>,
+            RTNeural::TanhActivationT<float, 16>,
+            RTNeural::Conv1DT<float, 16, 16, 3, 2>,
+            RTNeural::TanhActivationT<float, 16>,
+            RTNeural::GRULayerT<float, 16, 48>,
+            RTNeural::DenseT<float, 48, 1>
+        > neuralNetT[2];
+
+        double sampleRate_ = 48000.;
+        int maxBlockSize_ = 512;
+        std::atomic<bool> bypassed_ = false;
+
+        float gainNorm_ = 0.5f;
+        float bassVal_= 0.5f;
+        float midVal_= 0.5f;
+        float trebleVal_= 0.5f;
+        float presenceVal_ = 0.5f;
+
+        void updateFilters_();
     };
-
-    using Filter = juce::dsp::IIR::Filter<float>;
-    using FilterCoefs = juce::dsp::IIR::Coefficients<float>;
-    using Duplicator = juce::dsp::ProcessorDuplicator<Filter, FilterCoefs>;
-
-    juce::dsp::ProcessorChain<
-        Duplicator,
-        Duplicator,
-        Duplicator,
-        Duplicator,
-        juce::dsp::Gain<float>
-    > toneStack_;
-
-    RTNeural::ModelT<float, 2, 2,
-        RTNeural::DenseT<float, 2, 16>,
-        RTNeural::TanhActivationT<float, 16>,
-        RTNeural::Conv1DT<float, 16, 16, 3, 2>,
-        RTNeural::TanhActivationT<float, 16>,
-        RTNeural::GRULayerT<float, 16, 48>,
-        RTNeural::DenseT<float, 48, 1>
-    > neuralNetT[2];
-
-    double sampleRate_ = 48000.;
-    int maxBlockSize_ = 512;
-    std::atomic<bool> bypassed_ = false;
-
-    float gainNorm_ = 0.5f;
-    float bassVal_= 0.5f;
-    float midVal_= 0.5f;
-    float trebleVal_= 0.5f;
-    float presenceVal_ = 0.5f;
-
-    void updateFilters_();
-};
+}

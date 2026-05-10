@@ -10,11 +10,11 @@ class PedalPageComponent : public juce::Component
 {
 public:
     PedalPageComponent(juce::AudioProcessorValueTreeState& apvts)
-        : gateComponent(apvts), compressorComponent(apvts), distComponent(apvts)
+        : gateComponent_(apvts), compressorComponent_(apvts), distComponent_(apvts)
     {
-        addAndMakeVisible(gateComponent);
-        addAndMakeVisible(compressorComponent);
-        addAndMakeVisible(distComponent);
+        addAndMakeVisible(gateComponent_);
+        addAndMakeVisible(compressorComponent_);
+        addAndMakeVisible(distComponent_);
     }
 
     void resized() override
@@ -24,15 +24,15 @@ public:
         juce::FlexBox mainRow;
         mainRow.flexDirection = juce::FlexBox::Direction::row;
 
-        mainRow.items.add(juce::FlexItem(gateComponent).withFlex(1).withMargin(10));
-        mainRow.items.add(juce::FlexItem(compressorComponent).withFlex(1).withMargin(10));
-        mainRow.items.add(juce::FlexItem(distComponent).withFlex(1).withMargin(10));
+        mainRow.items.add(juce::FlexItem(gateComponent_).withFlex(1).withMargin(10));
+        mainRow.items.add(juce::FlexItem(compressorComponent_).withFlex(1).withMargin(10));
+        mainRow.items.add(juce::FlexItem(distComponent_).withFlex(1).withMargin(10));
 
         mainRow.performLayout(area);
     }
 
 private:
-    GateComponent gateComponent;
-    CompressorComponent compressorComponent;
-    DistortionComponent distComponent;
+    GUI::GateComponent gateComponent_;
+    GUI::CompressorComponent compressorComponent_;
+    GUI::DistortionComponent distComponent_;
 };

@@ -270,7 +270,7 @@ void AudioPluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
     juce::ScopedNoDenormals noDenormals;
 
     mono_.setEnabled(monoEnabled_);
-    mono_.setMode(MonoModule::Left);
+    mono_.setMode(DSP::MonoModule::Left);
 
     juce::dsp::AudioBlock<float> monoBlock(buffer);
     juce::dsp::ProcessContextReplacing<float> monoContext(monoBlock);

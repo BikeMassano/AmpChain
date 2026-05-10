@@ -8,9 +8,9 @@ class AmpPageComponent : public juce::Component
 {
 public:
     AmpPageComponent(juce::AudioProcessorValueTreeState& apvts)
-        : ampComponent(apvts)
+        : ampComponent_(apvts)
     {
-        addAndMakeVisible(ampComponent);
+        addAndMakeVisible(ampComponent_);
     }
 
     void resized() override
@@ -20,11 +20,11 @@ public:
         juce::FlexBox mainRow;
         mainRow.flexDirection = juce::FlexBox::Direction::row;
 
-        mainRow.items.add(juce::FlexItem(ampComponent).withFlex(1).withMargin(0));
+        mainRow.items.add(juce::FlexItem(ampComponent_).withFlex(1).withMargin(0));
 
         mainRow.performLayout(area);
     }
 
 private:
-    AmpComponent ampComponent;
+    GUI::AmpComponent ampComponent_;
 };

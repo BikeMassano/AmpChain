@@ -20,7 +20,6 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
 
     // ================= PRESETS =================
     addAndMakeVisible(presetBox);
-    addAndMakeVisible(presetNameEditor);
 
     addAndMakeVisible(savePresetButton);
     addAndMakeVisible(deletePresetButton);
@@ -32,8 +31,6 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
     prevPresetButton.setButtonText("<");
     nextPresetButton.setButtonText(">");
 
-    presetNameEditor.setText("");
-    presetNameEditor.setSelectAllWhenFocused(true);
 
     // заполнение списка
     auto presets = processorRef.getPresetManager().getAllPresets();
@@ -44,7 +41,8 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
 
     savePresetButton.onClick = [this]()
     {
-        auto name = presetNameEditor.getText().trim();
+        auto name = presetBox.getText().trim();
+        if (name.isEmpty()) return;
 
         processorRef.getPresetManager().savePreset(name);
 
@@ -87,6 +85,8 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
         if (index >= 0)
             presetBox.setSelectedItemIndex(index);
     };
+
+    presetBox.setEditableText(true);
 
     // ================= RMS METERS =================
     addAndMakeVisible(leftInMeter);
@@ -236,16 +236,22 @@ void AudioPluginAudioProcessorEditor::resized()
     topBar.setBounds(topArea);
     auto buttonArea = topArea.removeFromRight(300).reduced(10);
 
-    auto presetArea = topArea.removeFromLeft(400).reduced(10);
+   {
+        const int arrowW  = 30;
+        const int actionW = 50;
+        const int boxW    = 220;
+        const int totalW  = arrowW + actionW + boxW + actionW + arrowW + 16; // 16 = отступы
+        const int h       = 30;
+        const int y       = (50 - h) / 2;
+        const int startX  = (getWidth() - totalW) / 2;
 
-    prevPresetButton.setBounds(presetArea.removeFromLeft(30));
-    nextPresetButton.setBounds(presetArea.removeFromLeft(30));
-
-    presetBox.setBounds(presetArea.removeFromLeft(180));
-    presetNameEditor.setBounds(presetArea.removeFromLeft(120));
-
-    savePresetButton.setBounds(presetArea.removeFromLeft(60));
-    deletePresetButton.setBounds(presetArea.removeFromLeft(60));
+        int x = startX;
+        prevPresetButton  .setBounds(x, y, arrowW,  h); x += arrowW  + 4;
+        deletePresetButton.setBounds(x, y, actionW, h); x += actionW + 4;
+        presetBox         .setBounds(x, y, boxW,    h); x += boxW    + 4;
+        savePresetButton  .setBounds(x, y, actionW, h); x += actionW + 4;
+        nextPresetButton  .setBounds(x, y, arrowW,  h);
+    }
 
     pedalButton.setBounds(buttonArea.removeFromLeft(90));
     ampButton.setBounds(buttonArea.removeFromLeft(90));

@@ -102,7 +102,7 @@ private:
 
     std::atomic<float>* cabBypass_ = nullptr;
 
-    MonoModule mono_;
+    DSP::MonoModule mono_;
 
     //==============================================================================
     enum {
@@ -113,11 +113,11 @@ private:
         cabIndex            // [4]
     };
     juce::dsp::ProcessorChain<
-        GateModule,
-        CompressorModule,
-        DistortionModule,
-        AmpModule,
-        CabModule
+        DSP::GateModule,
+        DSP::CompressorModule,
+        DSP::DistortionModule,
+        DSP::AmpModule,
+        DSP::CabModule
     > chain_;
 
     juce::LinearSmoothedValue<float> rmsInLevelLeft_, rmsInLevelRight_, rmsOutLevelLeft_, rmsOutLevelRight_;

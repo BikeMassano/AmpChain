@@ -85,11 +85,11 @@ target_link_libraries(AmpChain
         juce::juce_recommended_warning_flags
 )
 
-target_include_directories(AmpChain PRIVATE
+target_include_directories(AmpChain SYSTEM PRIVATE
 	${CMAKE_SOURCE_DIR}/ASIOSDK
 	${CMAKE_SOURCE_DIR}/ASIOSDK/common
 
-	${CMAKE_SOURCE_DIR}/Source/DSP/NAM
-    	${CMAKE_SOURCE_DIR}/Source/DSP/NAM/Dependencies/eigen
-    	${CMAKE_SOURCE_DIR}/Source/DSP/NAM/Dependencies/nlohmann
+	${CMAKE_SOURCE_DIR}/modules/RTNeural
+	${CMAKE_SOURCE_DIR}/modules/RTNeural/modules/Eigen
+	${CMAKE_SOURCE_DIR}/modules/RTNeural/modules/json
 )

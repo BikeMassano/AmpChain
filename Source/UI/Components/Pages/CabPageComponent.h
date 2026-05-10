@@ -26,5 +26,5 @@ public:
     }
 
 private:
-    CabComponent cabComponent_;
+    GUI::CabComponent cabComponent_;
 };
