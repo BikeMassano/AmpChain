@@ -1,10 +1,17 @@
 #include "AmpModule.h"
 #include <fstream>
 #include <BinaryData.h>
+#include <NeuralAmpModelerCore/NAM/wavenet/model.h>
+#include <NeuralAmpModelerCore/NAM/model_config.h>
 
 namespace DSP
 {
-    AmpModule::AmpModule() {}
+    AmpModule::AmpModule() 
+    {
+        nam::activations::Activation::enable_fast_tanh();
+        if (!nam::ConfigParserRegistry::instance().has("WaveNet"))
+            nam::ConfigParserRegistry::instance().registerParser("WaveNet", nam::wavenet::create_config);
+    }
 
     void AmpModule::prepare(const juce::dsp::ProcessSpec& spec)
     {
@@ -13,16 +20,11 @@ namespace DSP
 
         toneStack_.prepare(spec);
         updateFilters_();
-
-        neuralNetT[0].reset();
-        neuralNetT[1].reset();
     }
 
 
     void AmpModule::reset()
     {
-        neuralNetT[0].reset();
-        neuralNetT[1].reset();
         toneStack_.reset();
     }
 
@@ -33,54 +35,95 @@ namespace DSP
 
         auto& block = context.getOutputBlock();
 
-        for (int ch = 0; ch < (int)block.getNumChannels(); ++ch)
+        const int numSamples = (int) block.getNumSamples();
+        const int numChannels = (int) block.getNumChannels();
+
+        if (model_[0] != nullptr && model_[1] != nullptr)
         {
-            auto* x = block.getChannelPointer(ch);
-            for (int n = 0; n < (int)block.getNumSamples(); ++n)
+            const int modelInputs  = model_[0]->NumInputChannels();
+            const int modelOutputs = model_[0]->NumOutputChannels();
+            
+            if (modelInputs == 1)
             {
-                float input[] = { x[n], gainNorm_ };
-                x[n] = neuralNetT[ch].forward(input);
+                // Моно модель — каждый канал через свой независимый экземпляр
+                for (int ch = 0; ch < numChannels && ch < 2; ch++)
+                {
+                    if (model_[ch] == nullptr) continue;
+
+                    auto* data = block.getChannelPointer(ch);
+                    NAM_SAMPLE* in[1]  = { data };
+                    NAM_SAMPLE* out[1] = { data };
+                    model_[ch]->process(in, out, numSamples);
+                }
+            }
+            else
+            {
+                // Мультиканальная модель — передаём все каналы сразу
+                std::vector<NAM_SAMPLE*> in(modelInputs, nullptr);
+                std::vector<NAM_SAMPLE*> out(modelOutputs, nullptr);
+
+                for (int ch = 0; ch < modelInputs && ch < numChannels; ch++)
+                {
+                    in[ch]  = block.getChannelPointer(ch);
+                    out[ch] = block.getChannelPointer(ch);
+                }
+
+                model_[0]->process(in.data(), out.data(), numSamples);
             }
         }
 
         toneStack_.process(context);
-
     }
 
-    bool AmpModule::loadModel()
+    bool AmpModule::loadModel(const juce::File& file)
     {
+        if (!file.existsAsFile())
+            return false;
+        
+        for (auto& m : model_) m.reset();
+
         try
         {
-            juce::MemoryInputStream jsonStream(
-                BinaryData::model_json,
-                BinaryData::model_jsonSize,
-                false
-            );
+            auto path = std::filesystem::path(file.getFullPathName().toStdString());
 
-            auto jsonString = jsonStream.readEntireStreamAsString();
-            auto jsonInput = nlohmann::json::parse(jsonString.toStdString());
+           for (auto& m : model_)
+            {
+                m = nam::get_dsp(path);
+                if (m != nullptr)
+                    m->ResetAndPrewarm(sampleRate_, maxBlockSize_);
+            }
 
-            neuralNetT[0].parseJson(jsonInput);
-            neuralNetT[1].parseJson(jsonInput);
-            DBG("model loaded!");
-            return true;
+            return model_[0] != nullptr;
         }
-        catch (...) 
+        catch (const std::exception& e)
         {
-            DBG("model not loaded!");
-            return false; 
+            DBG("NAM load failed: " << e.what());
+            for (auto& m : model_) m.reset();
+            return false;
+        }
+        catch (...)
+        {
+            DBG("NAM load failed: unknown exception");
+            for (auto& m : model_) m.reset();
+            return false;
         }
     }
 
     double AmpModule::getModelSampleRate() const
     {
-        return sampleRate_;
+        if (model_[0] != nullptr)
+            return model_[0]->GetExpectedSampleRate();
+        return NAM_UNKNOWN_EXPECTED_SAMPLE_RATE;
     }
 
     void AmpModule::setGain(float val)
     {
-        // если gain идёт от 0 до 10 dB → нормируем
         gainNorm_ = val;
+        float db = (val - 5.f) * (24.f / 5.f);
+
+        for (auto& m : model_)
+            if (m != nullptr)
+                m->SetInputLevel(db);
     }
 
     void AmpModule::setLevel(float val)

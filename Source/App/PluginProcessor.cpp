@@ -21,9 +21,25 @@ AudioPluginAudioProcessor::AudioPluginAudioProcessor()
 
 
     initParameters_();
-    chain_.get<ampIndex>().loadModel();
+    try
+    {
+        const bool loaded = chain_.get<ampIndex>().loadModel(
+            juce::File("C:\\Users\\yurij\\Desktop\\Projects\\AudioPlugins\\NoiseGate\\models\\PEAVEY_6505_Lead.nam")
+        );
+        jassert(loaded);
+        DBG("NAM model loaded:" << (loaded ? "true" : "false"));
+    }
+    catch (const std::exception& e)
+    {
+        DBG("NAM model exception: " << e.what());
+        jassertfalse;
+    }
+    catch (...)
+    {
+        DBG("NAM model unknown exception");
+        jassertfalse;
+    }
 }
-
 AudioPluginAudioProcessor::~AudioPluginAudioProcessor()
 {
 }

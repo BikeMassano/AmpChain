@@ -2,7 +2,9 @@
 
 #include <juce_audio_processors/juce_audio_processors.h>
 #include <juce_dsp/juce_dsp.h>
-#include <RTNeural/RTNeural.h>
+#include <NeuralAmpModelerCore/NAM/dsp.h>
+#include <NeuralAmpModelerCore/NAM/get_dsp.h>
+
 
 namespace DSP
 {
@@ -16,7 +18,7 @@ namespace DSP
         void process(const juce::dsp::ProcessContextReplacing<float>& context);
 
         // загрузка ИИ модели
-        bool loadModel();
+        bool loadModel(const juce::File& file);
 
         void setGain (float val);
         void setBass (float db);
@@ -42,6 +44,10 @@ namespace DSP
         using FilterCoefs = juce::dsp::IIR::Coefficients<float>;
         using Duplicator = juce::dsp::ProcessorDuplicator<Filter, FilterCoefs>;
 
+        // Все модели nam имеют внутреннюю память
+        // Поэтому используется массив моделей
+        std::unique_ptr<nam::DSP> model_[2];
+
         juce::dsp::ProcessorChain<
             Duplicator,
             Duplicator,
@@ -49,15 +55,6 @@ namespace DSP
             Duplicator,
             juce::dsp::Gain<float>
         > toneStack_;
-
-        RTNeural::ModelT<float, 2, 2,
-            RTNeural::DenseT<float, 2, 16>,
-            RTNeural::TanhActivationT<float, 16>,
-            RTNeural::Conv1DT<float, 16, 16, 3, 2>,
-            RTNeural::TanhActivationT<float, 16>,
-            RTNeural::GRULayerT<float, 16, 48>,
-            RTNeural::DenseT<float, 48, 1>
-        > neuralNetT[2];
 
         double sampleRate_ = 48000.;
         int maxBlockSize_ = 512;
