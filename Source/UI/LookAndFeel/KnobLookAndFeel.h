@@ -7,10 +7,9 @@ class KnobLookAndFeel : public juce::LookAndFeel_V4
 {
 public:
     juce::Image knobImage;
-    juce::Image shadowImage;
 
-    KnobLookAndFeel(juce::Image k, juce::Image s)
-        : knobImage(k), shadowImage(s) {}
+    KnobLookAndFeel(juce::Image k)
+        : knobImage(k) {}
 
     void drawRotarySlider(juce::Graphics& g,
                           int x, int y, int width, int height,
@@ -25,13 +24,6 @@ public:
 
         float angle = rotaryStartAngle
                     + sliderPosProportional * (rotaryEndAngle - rotaryStartAngle);
-
-        // ===== shadow =====
-        g.drawImageWithin(
-            shadowImage,
-            x, y, width, height,
-            juce::RectanglePlacement::centred
-        );
 
         // ===== knob rotation =====
         g.addTransform(juce::AffineTransform::rotation(angle, center.x, center.y));

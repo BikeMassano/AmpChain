@@ -6,7 +6,7 @@
 
 namespace GUI
 {
-    namespace DistortionLayout
+    namespace FlangerLayout
     {
         constexpr float bodyAspect = 1080.0f / 1917.0f;  // соотношение сторон педали
 
@@ -21,19 +21,19 @@ namespace GUI
             float size;
         };
 
-        constexpr ControlDesc drive  {0.24f, 0.17f, knobSize};
-        constexpr ControlDesc tone   {0.76f, 0.17f, knobSize};
-        constexpr ControlDesc level  {0.5f,  0.33f, knobSize};
+        constexpr ControlDesc range  {0.24f, 0.17f, knobSize};
+        constexpr ControlDesc rate   {0.76f, 0.17f, knobSize};
+        constexpr ControlDesc color  {0.5f,  0.33f, knobSize};
         constexpr ControlDesc button {0.5f,  0.79f, buttonSize};
         constexpr ControlDesc lamp   {0.5f,  0.69f, lampSize};
     }
 
-    class DistortionComponent final : public juce::Component,
+    class FlangerComponent final : public juce::Component,
                     public juce::AudioProcessorValueTreeState::Listener
     {
     public:
-        DistortionComponent(juce::AudioProcessorValueTreeState& apvts);
-        ~DistortionComponent() override;
+        FlangerComponent(juce::AudioProcessorValueTreeState& apvts);
+        ~FlangerComponent() override;
 
         void paint(juce::Graphics& g) override;
         void resized() override;
@@ -59,7 +59,7 @@ namespace GUI
         // Потенциометры
         struct Knobs 
         {
-            juce::Slider tone, level, dist;
+            juce::Slider rate, range, color;
         } knobs_;
 
         // Кнопка
@@ -76,12 +76,13 @@ namespace GUI
 
         struct Attachments
         {
-            std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> tone;
-            std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> level;
-            std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> dist;
+            std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> rate;
+            std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> range;
+            std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> color;
+            std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> regen;
             std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> bypass;
         } attachments_;
 
-        JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(DistortionComponent)
+        JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(FlangerComponent)
     };
 }

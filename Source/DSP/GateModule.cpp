@@ -20,8 +20,20 @@ namespace DSP
         gate_.process(context);
     }
 
-    void GateModule::setThreshold(float v) { gate_.setThreshold(v); }
-    void GateModule::setAttack(float ms) { gate_.setAttack(ms); }
-    void GateModule::setRelease(float ms) { gate_.setRelease(ms); }
-    void GateModule::setBypassed(bool b) { bypassed_ = b; }
+    void GateModule::setThreshold(const float newThresholdDb)
+    {
+        gate_.setThreshold(juce::jlimit(-100.f, 0.f, newThresholdDb));
+    }
+
+    void GateModule::setAttack(const float newAttackMs)
+    {
+        gate_.setAttack(juce::jlimit(0.1f, 50.f, newAttackMs));
+    }
+
+    void GateModule::setRelease(const float newReleaseMs)
+    {
+        gate_.setRelease(juce::jlimit(10.f, 2000.f, newReleaseMs));
+    }
+    
+    void GateModule::setBypassed(const bool b) { bypassed_ = b; }
 }

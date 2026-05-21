@@ -116,109 +116,128 @@ AudioPluginAudioProcessor::createParameters()
 
     // NoiseGate Parameters
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
-        ParamIDs::gateThreshold, "Gate Threshold",
+        ParamIDs::Gate::Threshold, "Threshold",
         juce::NormalisableRange<float>(-100.0f, 0.0f),
         -50.0f));
 
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
-        ParamIDs::gateAttack, "Gate Attack",
+        ParamIDs::Gate::Attack, "Attack",
         juce::NormalisableRange<float>(0.1f, 200.0f),
         100.0f));
 
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
-        ParamIDs::gateRelease, "Gate Release",
+        ParamIDs::Gate::Release, "Release",
         juce::NormalisableRange<float>(10.0f, 1000.0f),
         500.0f));
 
     params.push_back(std::make_unique<juce::AudioParameterBool>(
-        ParamIDs::gateBypass, "Gate Bypass", false));
+        ParamIDs::Gate::Bypass, "Bypass", false));
     
     // Compressor Parameters
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
-        ParamIDs::compThreshold, "Comp Threshold",
+        ParamIDs::Compressor::Threshold, "Threshold",
         juce::NormalisableRange<float>(-60.0f, 0.0f),
         -30.0f));
 
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
-        ParamIDs::compRatio, "Comp Ratio",
+        ParamIDs::Compressor::Ratio, "Ratio",
         juce::NormalisableRange<float>(1.0f, 20.0f),
         10.0f));
 
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
-        ParamIDs::compAttack, "Comp Attack",
+        ParamIDs::Compressor::Attack, "Attack",
         juce::NormalisableRange<float>(0.1f, 200.0f),
         100.0f));
 
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
-        ParamIDs::compRelease, "Comp Release",
+        ParamIDs::Compressor::Release, "Release",
         juce::NormalisableRange<float>(10.0f, 1000.0f),
         500.0f));
 
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
-        ParamIDs::compMakeup, "Comp Makeup",
+        ParamIDs::Compressor::Makeup, "Makeup",
         juce::NormalisableRange<float>(0.0f, 12.0f),
         0.0f));
 
     params.push_back(std::make_unique<juce::AudioParameterBool>(
-        ParamIDs::compBypass, "Comp Bypass", false));
+        ParamIDs::Compressor::Bypass, "Bypass", false));
+
+    // Flanger Parameters
+    params.push_back(std::make_unique<juce::AudioParameterFloat>(
+        ParamIDs::Flanger::Rate, "Rate",
+        juce::NormalisableRange<float>(0.1f, 8.f),
+        0.5f));
+
+    params.push_back(std::make_unique<juce::AudioParameterFloat>(
+        ParamIDs::Flanger::Range, "Range",
+        juce::NormalisableRange<float>(1.f, 15.f),
+        7.f));
+
+    params.push_back(std::make_unique<juce::AudioParameterFloat>(
+        ParamIDs::Flanger::Feedback, "Feedback",
+        juce::NormalisableRange<float>(0.f, 1.f),
+        0.5f));
+
+    params.push_back(std::make_unique<juce::AudioParameterBool>(
+        ParamIDs::Flanger::Bypass, "Bypass", false));
 
     // Distortion Parameters
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
-        ParamIDs::distTone, "Tone",
+        ParamIDs::Distortion::Tone, "Tone",
         juce::NormalisableRange<float>(1600.0f, 16000.0f, 1.0f, 0.3f, true),
         3000.0f));
 
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
-        ParamIDs::distLevel, "Level",
+        ParamIDs::Distortion::Level, "Level",
         juce::NormalisableRange<float>(-12.0f, 12.0f, 0.1f),
         0.0f));
 
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
-        ParamIDs::distDist, "Dist",
-        juce::NormalisableRange<float>(0.0f, 30.0f, 0.01f, 0.5f, true),
+        ParamIDs::Distortion::Dist, "Dist",
+        juce::NormalisableRange<float>(0.0f, 70.0f, 0.01f, 0.5f, true),
         10.0f));
     
     params.push_back(std::make_unique<juce::AudioParameterBool>(
-        ParamIDs::distBypass, "Dist Bypass", false));
+        ParamIDs::Distortion::Bypass, "Bypass", false));
 
     // Amp Parameters
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
-        ParamIDs::ampBass, "Amp Bass",
+        ParamIDs::Amplifier::Bass, "Bass",
         juce::NormalisableRange<float>(0.0f, 10.0f),
         5.0f));
 
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
-        ParamIDs::ampMid, "Amp Mid",
+        ParamIDs::Amplifier::Mid, "Mid",
         juce::NormalisableRange<float>(0.0f, 10.0f),
         5.0f));
 
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
-        ParamIDs::ampTreble, "Amp Treble",
+        ParamIDs::Amplifier::Treble, "Treble",
         juce::NormalisableRange<float>(0.0f, 10.0f),
         5.0f));
 
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
-        ParamIDs::ampGain, "Amp Gain",
+        ParamIDs::Amplifier::Gain, "Gain",
         juce::NormalisableRange<float>(0.0f, 10.0f),
         5.0f));
 
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
-        ParamIDs::ampPresence, "Amp Presence",
+        ParamIDs::Amplifier::Presence, "Presence",
         juce::NormalisableRange<float>(0.0f, 10.0f),
         5.0f));
 
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
-        ParamIDs::ampLevel, "Amp Level",
+        ParamIDs::Amplifier::Level, "Level",
         juce::NormalisableRange<float>(0.0f, 10.0f),
         5.0f));
 
     params.push_back(std::make_unique<juce::AudioParameterBool>(
-        ParamIDs::ampBypass, "Amp Bypass", false));
+        ParamIDs::Amplifier::Bypass, "Bypass", false));
 
     // Cab Parameters
 
     params.push_back(std::make_unique<juce::AudioParameterBool>(
-        ParamIDs::cabBypass, "Cab Bypass", false));
+        ParamIDs::Cabinet::Bypass, "Bypass", false));
 
     return { params.begin(), params.end() };
 }
@@ -319,11 +338,12 @@ void AudioPluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
         buffer.clear (i, 0, buffer.getNumSamples());
 
     // ================= ОБРАБОТКА ЗВУКА =================
-    auto& gate = chain_.get<gateIndex>();
-    auto& comp = chain_.get<compressorIndex>();
-    auto& dist = chain_.get<distortionIndex>();
-    auto& amp = chain_.get<ampIndex>();
-    auto& cab = chain_.get<cabIndex>();
+    auto& gate =    chain_.get<gateIndex>();
+    auto& comp =    chain_.get<compressorIndex>();
+    auto& flanger = chain_.get<flangerIndex>();
+    auto& dist =    chain_.get<distortionIndex>();
+    auto& amp =     chain_.get<ampIndex>();
+    auto& cab =     chain_.get<cabIndex>();
 
     // Gate
     gate.setThreshold(gateThreshold_->load());
@@ -338,6 +358,12 @@ void AudioPluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
     comp.setRelease(compRelease_->load());
     comp.setMakeup(compMakeup_->load());
     comp.setBypassed(compBypass_->load() < 0.5f);
+
+    // Flanger
+    flanger.setRate(flangerRate_->load());
+    flanger.setRange(flangerRange_->load());
+    flanger.setFeedback(flangerFeedback_->load());
+    flanger.setBypassed(flangerBypass_->load() < 0.5f);
 
     // Distortion
     dist.setTone(distTone_->load());
@@ -452,30 +478,35 @@ void AudioPluginAudioProcessor::loadCabIR(const juce::File& file)
 
 void AudioPluginAudioProcessor::initParameters_()
 {
-    gateThreshold_ = apvts.getRawParameterValue(ParamIDs::gateThreshold);
-    gateAttack_    = apvts.getRawParameterValue(ParamIDs::gateAttack);
-    gateRelease_   = apvts.getRawParameterValue(ParamIDs::gateRelease);
-    gateBypass_ = apvts.getRawParameterValue(ParamIDs::gateBypass);
+    gateThreshold_  = apvts.getRawParameterValue(ParamIDs::Gate::Threshold);
+    gateAttack_     = apvts.getRawParameterValue(ParamIDs::Gate::Attack);
+    gateRelease_    = apvts.getRawParameterValue(ParamIDs::Gate::Release);
+    gateBypass_     = apvts.getRawParameterValue(ParamIDs::Gate::Bypass);
 
-    compThreshold_ = apvts.getRawParameterValue(ParamIDs::compThreshold);
-    compRatio_     = apvts.getRawParameterValue(ParamIDs::compRatio);
-    compAttack_    = apvts.getRawParameterValue(ParamIDs::compAttack);
-    compRelease_   = apvts.getRawParameterValue(ParamIDs::compRelease);
-    compMakeup_    = apvts.getRawParameterValue(ParamIDs::compMakeup);
-    compBypass_ = apvts.getRawParameterValue(ParamIDs::compBypass);
+    compThreshold_  = apvts.getRawParameterValue(ParamIDs::Compressor::Threshold);
+    compRatio_      = apvts.getRawParameterValue(ParamIDs::Compressor::Ratio);
+    compAttack_     = apvts.getRawParameterValue(ParamIDs::Compressor::Attack);
+    compRelease_    = apvts.getRawParameterValue(ParamIDs::Compressor::Release);
+    compMakeup_     = apvts.getRawParameterValue(ParamIDs::Compressor::Makeup);
+    compBypass_     = apvts.getRawParameterValue(ParamIDs::Compressor::Bypass);
 
-    distTone_  = apvts.getRawParameterValue(ParamIDs::distTone);
-    distLevel_ = apvts.getRawParameterValue(ParamIDs::distLevel);
-    distDist_  = apvts.getRawParameterValue(ParamIDs::distDist);
-    distBypass_ = apvts.getRawParameterValue(ParamIDs::distBypass);
+    flangerRate_    = apvts.getRawParameterValue(ParamIDs::Flanger::Rate);
+    flangerRange_   = apvts.getRawParameterValue(ParamIDs::Flanger::Range);
+    flangerFeedback_= apvts.getRawParameterValue(ParamIDs::Flanger::Feedback);
+    flangerBypass_  = apvts.getRawParameterValue(ParamIDs::Flanger::Bypass);
 
-    ampBass_ = apvts.getRawParameterValue(ParamIDs::ampBass);
-    ampMid_ = apvts.getRawParameterValue(ParamIDs::ampMid);
-    ampTreble_ = apvts.getRawParameterValue(ParamIDs::ampTreble);
-    ampPresence_ = apvts.getRawParameterValue(ParamIDs::ampPresence);
-    ampGain_ = apvts.getRawParameterValue(ParamIDs::ampGain);
-    ampLevel_ = apvts.getRawParameterValue(ParamIDs::ampLevel);
-    ampBypass_ = apvts.getRawParameterValue(ParamIDs::ampBypass);
+    distTone_       = apvts.getRawParameterValue(ParamIDs::Distortion::Tone);
+    distLevel_      = apvts.getRawParameterValue(ParamIDs::Distortion::Level);
+    distDist_       = apvts.getRawParameterValue(ParamIDs::Distortion::Dist);
+    distBypass_     = apvts.getRawParameterValue(ParamIDs::Distortion::Bypass);
 
-    cabBypass_  = apvts.getRawParameterValue(ParamIDs::cabBypass);
+    ampBass_        = apvts.getRawParameterValue(ParamIDs::Amplifier::Bass);
+    ampMid_         = apvts.getRawParameterValue(ParamIDs::Amplifier::Mid);
+    ampTreble_      = apvts.getRawParameterValue(ParamIDs::Amplifier::Treble);
+    ampPresence_    = apvts.getRawParameterValue(ParamIDs::Amplifier::Presence);
+    ampGain_        = apvts.getRawParameterValue(ParamIDs::Amplifier::Gain);
+    ampLevel_       = apvts.getRawParameterValue(ParamIDs::Amplifier::Level);
+    ampBypass_      = apvts.getRawParameterValue(ParamIDs::Amplifier::Bypass);
+
+    cabBypass_      = apvts.getRawParameterValue(ParamIDs::Cabinet::Bypass);
 }

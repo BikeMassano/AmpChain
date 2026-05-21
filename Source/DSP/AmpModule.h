@@ -4,34 +4,53 @@
 #include <juce_dsp/juce_dsp.h>
 #include <NeuralAmpModelerCore/NAM/dsp.h>
 #include <NeuralAmpModelerCore/NAM/get_dsp.h>
-
+#include "DSPModule.h"
 
 namespace DSP
 {
-    class AmpModule final
+    /**
+     * @class AmpModule
+     * @brief Модуль усилителя на основе нейросетевой модели (NAM).
+     * Реализует эмуляцию гитарного усилителя с использованием
+     * нейросетевой модели (NAM DSP) и пост-обработкой tone stack.
+     * 
+     * Модуль поддерживает загрузку внешних NAM моделей
+     */
+    class AmpModule final : public DSPModule
     {
     public:
         AmpModule();
 
-        void prepare(const juce::dsp::ProcessSpec& spec);
-        void reset();
-        void process(const juce::dsp::ProcessContextReplacing<float>& context);
+        void prepare(const juce::dsp::ProcessSpec& spec) override;
+        void reset() override;
+        void process(const juce::dsp::ProcessContextReplacing<float>& context) override;
 
-        // загрузка ИИ модели
+        /**
+         * @brief Загружает обученную нейросетевую модель усилителя (NAM).
+         *
+         * @param file Путь к NAM модели
+         * @return true если модель успешно загружена
+         */
         bool loadModel(const juce::File& file);
 
-        void setGain (float val);
-        void setBass (float db);
-        void setMid (float db);
-        void setTreble (float db);
-        void setPresence (float db);
-        void setLevel (float db);
-        void setBypassed (bool v);
+        void setGain (const float newGainVal);
+        void setBass (const float newBassDb);
+        void setMid (const float newMidDb);
+        void setTreble (const float newTrebleDb);
+        void setPresence (const float newPresenceDb);
+        void setLevel (const float newLevelDb);
 
-        //bool hasModel() const { return model_ != nullptr; }
+        /**
+         * @brief Включает или отключает bypass.
+         * @param b true — сигнал проходит без обработки, false — обработка активна.
+         */
+        void setBypassed (const bool v) override;
+
         double getModelSampleRate() const;
 
     private:
+        static constexpr int kMaxModelChannels = 2;
+
         enum toneStackIndex {
             bassFilterIndex,    // [0]
             midFilterIndex,     // [1]
@@ -46,7 +65,10 @@ namespace DSP
 
         // Все модели nam имеют внутреннюю память
         // Поэтому используется массив моделей
-        std::unique_ptr<nam::DSP> model_[2];
+        std::array<std::unique_ptr<nam::DSP>, 2> model_;
+        
+        std::vector<NAM_SAMPLE*> inputPtrs_;
+        std::vector<NAM_SAMPLE*> outputPtrs_;
 
         juce::dsp::ProcessorChain<
             Duplicator,

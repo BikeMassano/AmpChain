@@ -6,6 +6,30 @@
 
 namespace GUI
 {
+    namespace CompressorLayout
+    {
+        constexpr float bodyAspect = 1080.0f / 1917.0f;  // соотношение сторон педали
+
+        constexpr float knobSize    = 0.22f;  // диаметр ручки потенциометра
+        constexpr float buttonSize  = 0.16f;  // размер кнопки в проценте от ширины педали
+        constexpr float lampSize    = 0.08f;  // размер лампы в проценте от ширины педали
+
+        // положение элементов в нормализованных координатах педали
+        struct ControlDesc
+        {
+            float x, y;
+            float size;
+        };
+
+        constexpr ControlDesc threshold  {0.24f, 0.17f, knobSize};
+        constexpr ControlDesc ratio      {0.76f, 0.17f, knobSize};
+        constexpr ControlDesc release    {0.24f, 0.36f, knobSize};
+        constexpr ControlDesc attack     {0.76f, 0.36f, knobSize};
+        constexpr ControlDesc makeup     {0.5f,  0.5f,  knobSize};
+        constexpr ControlDesc button     {0.5f,  0.79f, buttonSize};
+        constexpr ControlDesc lamp       {0.5f,  0.69f, lampSize};
+    }
+
     class CompressorComponent final : public juce::Component,
                     public juce::AudioProcessorValueTreeState::Listener
     {
@@ -21,30 +45,35 @@ namespace GUI
         void loadImages();
         void initButtons();
         void initSliders();
-        void initLabels();
         void initAttachments();
 
-        void setupKnob(juce::Slider& s, double min, double max);
-        void setupLabel(juce::Label& l, const juce::String& text);
+        juce::Rectangle<int> getBodyRect() const;
 
-        juce::AudioProcessorValueTreeState& apvtsRef;
+        void setupKnob(juce::Slider& s);
+
+        juce::AudioProcessorValueTreeState& apvtsRef_;
 
         // UI элементы
-        juce::Slider thresholdSlider, ratioSlider, attackSlider, releaseSlider, makeupGainSlider;
-        juce::Label thresholdLabel, ratioLabel, attackLabel, releaseLabel, makeupGainLabel;
-        juce::ImageButton powerButton;
-
-        // Изображения
-        juce::Image bodyImage;
-        juce::Image lampOffImage;
-        juce::Image lampOnImage;
-        juce::Image butOffImage;
-        juce::Image butOnImage;
-        juce::Image knobImage;
-        juce::Image knobShadowImage;
 
         // LookAndFeel
-        std::unique_ptr<KnobLookAndFeel> knobLnf;
+        std::unique_ptr<KnobLookAndFeel> knobLnf_;
+
+        struct Knobs 
+        {
+            juce::Slider threshold, ratio, attack, release, makeup;
+        } knobs_;
+
+        // Кнопка
+        juce::ImageButton powerButton_;
+
+        // Изображения
+        struct Images 
+        {
+            juce::Image body;
+            juce::Image lampOff, lampOn;
+            juce::Image buttonOff, buttonOn;
+            juce::Image knob;
+        } images_;
 
         struct Attachments
         {
@@ -54,7 +83,7 @@ namespace GUI
             std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> release;
             std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> makeupGain;
             std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> bypass;
-        } attachments;
+        } attachments_;
 
         JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(CompressorComponent)
     };

@@ -15,14 +15,18 @@ public:
 
     void resized() override
     {
-        auto area = getLocalBounds();
+        // constexpr float aspect = 1902.0f / 677.0f;
 
-        juce::FlexBox mainRow;
-        mainRow.flexDirection = juce::FlexBox::Direction::row;
+        // auto area = getLocalBounds().reduced(10);
 
-        mainRow.items.add(juce::FlexItem(ampComponent_).withFlex(1).withMargin(0));
+        // int w = area.getWidth();
+        // int h = juce::jmin((int)(w / aspect), area.getHeight());
 
-        mainRow.performLayout(area);
+        // int x = (area.getWidth() - w) / 2;
+        // int y = (area.getHeight() - h) / 2;
+
+        // ampComponent_.setBounds(x, y, w, h);
+        ampComponent_.setBounds(getLocalBounds());
     }
 
 private:

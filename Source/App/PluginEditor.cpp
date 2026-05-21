@@ -9,10 +9,12 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
 {
     juce::ignoreUnused(processorRef);
     setSize(1200, 800);
+    setOpaque(true);
     setResizeLimits(600, 400, 2400, 1600);
     // пропорции окна
     getConstrainer()->setFixedAspectRatio(1.4f);
-    setResizable(false, false);
+    // setResizable(false, false);
+    setResizable(true, true);
 
     // ================= PANELS =================
     addAndMakeVisible(topBar);
@@ -318,7 +320,6 @@ void AudioPluginAudioProcessorEditor::resized()
     // ================= RIGHT SIDE (OUT METERS) =================
     {
         auto rightArea = bottomContent.withTrimmedRight(10); 
-        // можно подвинуть чуть от края
 
         rightArea = rightArea.removeFromRight(meterWidth);
 

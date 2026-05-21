@@ -19,18 +19,23 @@ namespace GUI
 
     private:
         void openIRFilePicker();
+        void clearIR();
+
         juce::AudioProcessorValueTreeState& apvtsRef_;
 
         juce::Image cabImage_;
-        juce::TextButton irLoaderButton_;
-        juce::TextButton powerButton_;
+
+        juce::Label         irNameLabel_;
+        juce::TextButton    irLoadButton_;
+        juce::TextButton    irClearButton_;
+
+        juce::Label         cabLabel_;
+        juce::TextButton    powerButton_;
+        
         std::unique_ptr<juce::FileChooser>  fileChooser_;
         std::function<void(const juce::File&)> onIRLoaded_;
 
-        struct Attachments
-        {
-            std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> bypass;
-        } attachments;
+        std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> bypass_;
 
         JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(CabComponent)
     };

@@ -2,21 +2,64 @@
 
 #include <juce_audio_processors/juce_audio_processors.h>
 #include <juce_dsp/juce_dsp.h>
+#include "DSPModule.h"
 
 namespace DSP
 {
-    class DistortionModule final
+    /**
+     * @class DistortionModule
+     * @brief Модуль эффекта distortion.
+     *
+     * Реализует цепочку обработки для создания нелинейного
+     * искажения сигнала:
+     * 
+     * - pre gain;
+     * 
+     * - bias;
+     * 
+     * - waveshaper;
+     * 
+     * - DC-block filter;
+     * 
+     * - tone filter;
+     * 
+     * - output gain.
+     *
+     * Для уменьшения aliasing используется oversampling.
+     */
+    class DistortionModule final : public DSPModule
     {
     public:
-        void prepare(const juce::dsp::ProcessSpec& spec);
-        void reset();
-        void process(const juce::dsp::ProcessContextReplacing<float>& context);
+        void prepare(const juce::dsp::ProcessSpec& spec) override;
+        void reset() override;
+        void process(const juce::dsp::ProcessContextReplacing<float>& context) override;
 
-        void setTone(float cutoff);
-        void setLevel(float db);
-        void setDist(float db);
+        /**
+         * @brief Устанавливает частоту среза тонального фильтра.
+         * @param newCutoffHz Частота среза фильтра в герцах (Hz).
+         * Диапазон: 1600 ... 12000 Hz.
+         */
+        void setTone(const float newCutoffHz);
 
-        void setBypassed(bool b);
+        /**
+         * @brief Устанавливает выходную громкость.
+         * @param newLevelDb Усиление в децибелах (dB).
+         * Диапазон: -24 ... +24 dB.
+         */
+        void setLevel(const float newLevelDb);
+
+        /**
+         * @brief Устанавливает степень искажения сигнала.
+         * @param newDistDb Уровень drive/dist в децибелах (dB).
+         * Диапазон: 0 ... 50 dB.
+         */
+        void setDist(const float newDistDb);
+
+        /**
+         * @brief Включает или отключает bypass.
+         * @param b true — сигнал проходит без обработки, false — обработка активна.
+         */
+        void setBypassed(const bool b) override;
 
     private:
         enum {

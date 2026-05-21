@@ -7,6 +7,7 @@
 
 #include "../DSP/GateModule.h"
 #include "../DSP/CompressorModule.h"
+#include "../DSP/FlangerModule.h"
 #include "../DSP/DistortionModule.h"
 #include "../DSP/AmpModule.h"
 #include "../DSP/MonoModule.h"
@@ -95,11 +96,15 @@ private:
     std::atomic<float>* ampPresence_ = nullptr;
     std::atomic<float>* ampLevel_ = nullptr;
 
+    std::atomic<float>* flangerRate_ = nullptr;
+    std::atomic<float>* flangerRange_ = nullptr;
+    std::atomic<float>* flangerFeedback_ = nullptr;
+
     std::atomic<float>* gateBypass_ = nullptr;
     std::atomic<float>* compBypass_ = nullptr;
     std::atomic<float>* distBypass_ = nullptr;
     std::atomic<float>* ampBypass_ = nullptr;
-
+    std::atomic<float>* flangerBypass_ = nullptr;
     std::atomic<float>* cabBypass_ = nullptr;
 
     DSP::MonoModule mono_;
@@ -108,13 +113,15 @@ private:
     enum {
         gateIndex,          // [0]
         compressorIndex,    // [1]
-        distortionIndex,    // [2]
-        ampIndex,           // [3]
-        cabIndex            // [4]
+        flangerIndex,       // [2]
+        distortionIndex,    // [3]
+        ampIndex,           // [4]
+        cabIndex            // [5]
     };
     juce::dsp::ProcessorChain<
         DSP::GateModule,
         DSP::CompressorModule,
+        DSP::FlangerModule,
         DSP::DistortionModule,
         DSP::AmpModule,
         DSP::CabModule

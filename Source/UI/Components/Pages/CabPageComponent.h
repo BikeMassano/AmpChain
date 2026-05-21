@@ -16,13 +16,7 @@ public:
 
     void resized() override
     {
-        auto area = getLocalBounds().reduced(10);
-
-        juce::FlexBox mainRow;
-        mainRow.flexDirection = juce::FlexBox::Direction::row;
-
-        mainRow.items.add(juce::FlexItem(cabComponent_).withFlex(1).withMargin(10));
-        mainRow.performLayout(area);
+        cabComponent_.setBounds(getLocalBounds());
     }
 
 private:

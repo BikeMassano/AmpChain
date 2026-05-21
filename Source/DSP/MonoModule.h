@@ -16,9 +16,9 @@ namespace DSP
 
         void process(const juce::dsp::ProcessContextReplacing<float>& context);
 
-        void setEnabled(bool e);
+        void setEnabled(const bool e);
         bool getEnabled();
-        void setMode(MonoMode m);
+        void setMode(const MonoMode m);
     private:
         std::atomic<bool> enabled_ = false;
         MonoMode mode_ = Left;

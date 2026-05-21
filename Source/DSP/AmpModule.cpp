@@ -18,6 +18,9 @@ namespace DSP
         sampleRate_ = spec.sampleRate;
         maxBlockSize_ = (int)spec.maximumBlockSize;
 
+        inputPtrs_.resize(kMaxModelChannels);
+        outputPtrs_.resize(kMaxModelChannels);
+
         toneStack_.prepare(spec);
         updateFilters_();
     }
@@ -46,7 +49,7 @@ namespace DSP
             if (modelInputs == 1)
             {
                 // Моно модель — каждый канал через свой независимый экземпляр
-                for (int ch = 0; ch < numChannels && ch < 2; ch++)
+                for (size_t ch = 0; ch < numChannels && ch < 2; ch++)
                 {
                     if (model_[ch] == nullptr) continue;
 
@@ -59,16 +62,13 @@ namespace DSP
             else
             {
                 // Мультиканальная модель — передаём все каналы сразу
-                std::vector<NAM_SAMPLE*> in(modelInputs, nullptr);
-                std::vector<NAM_SAMPLE*> out(modelOutputs, nullptr);
-
-                for (int ch = 0; ch < modelInputs && ch < numChannels; ch++)
+                for (size_t ch = 0; ch < modelInputs && ch < numChannels; ch++)
                 {
-                    in[ch]  = block.getChannelPointer(ch);
-                    out[ch] = block.getChannelPointer(ch);
+                    inputPtrs_[ch]  = block.getChannelPointer(ch);
+                    outputPtrs_[ch] = block.getChannelPointer(ch);
                 }
 
-                model_[0]->process(in.data(), out.data(), numSamples);
+                model_[0]->process(inputPtrs_.data(), outputPtrs_.data(), numSamples);
             }
         }
 
@@ -116,7 +116,7 @@ namespace DSP
         return NAM_UNKNOWN_EXPECTED_SAMPLE_RATE;
     }
 
-    void AmpModule::setGain(float val)
+    void AmpModule::setGain(const float val)
     {
         gainNorm_ = val;
         float db = (val - 5.f) * (24.f / 5.f);
@@ -126,30 +126,30 @@ namespace DSP
                 m->SetInputLevel(db);
     }
 
-    void AmpModule::setLevel(float val)
+    void AmpModule::setLevel(const float val)
     {
         float db = (val - 5.f) * (24.f / 5.f); // диапазон ±24 dB
         toneStack_.get<outputGainIndex>().setGainDecibels(db);
     }
 
-    void AmpModule::setBypassed(bool v) { bypassed_ = v; }
+    void AmpModule::setBypassed(const bool v) { bypassed_ = v; }
 
-    void AmpModule::setBass(float val) 
+    void AmpModule::setBass(const float val) 
     { 
         bassVal_ = (val - 5.f) * (12.f / 5.f);
         updateFilters_();
     }
-    void AmpModule::setMid(float val)
+    void AmpModule::setMid(const float val)
     {
         midVal_ = (val - 5.f) * (10.f / 5.f);
         updateFilters_();
     }
-    void AmpModule::setTreble(float val)
+    void AmpModule::setTreble(const float val)
     {
         trebleVal_ = (val - 5.f) * (12.f / 5.f);
         updateFilters_();
     }
-    void AmpModule::setPresence(float val)
+    void AmpModule::setPresence(const float val)
     {
         presenceVal_ = (val - 5.f) * (8.f / 5.f);
         updateFilters_();

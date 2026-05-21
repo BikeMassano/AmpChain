@@ -4,169 +4,125 @@
 
 namespace GUI
 {
+    namespace
+    {
+        void placeCentered(juce::Component& component,
+                            const juce::Rectangle<float>& body,
+                            GUI::AmpLayout::ControlDesc desc)
+        {
+            auto size = body.getWidth() * desc.size;
+            
+            component.setBounds(
+                juce::Rectangle<int>(
+                    (int)(body.getX() + body.getWidth()  * desc.x - size * 0.5f),
+                    (int)(body.getY() + body.getHeight() * desc.y - size * 0.5f),
+                    (int)size,
+                    (int)size
+                )
+            );
+        }
+    }
+
     AmpComponent::AmpComponent(juce::AudioProcessorValueTreeState& apvts)
         : apvtsRef(apvts)
     {
         loadImages();
         initButtons();
         initSliders();
-        initLabels();
         initAttachments();
 
-        apvtsRef.addParameterListener(ParamIDs::ampBypass, this);
-        apvtsRef.addParameterListener(ParamIDs::ampBass, this);
-        apvtsRef.addParameterListener(ParamIDs::ampMid, this);
-        apvtsRef.addParameterListener(ParamIDs::ampTreble, this);
-        apvtsRef.addParameterListener(ParamIDs::ampPresence, this);
-        apvtsRef.addParameterListener(ParamIDs::ampGain, this);
-        apvtsRef.addParameterListener(ParamIDs::ampLevel, this);
+        apvtsRef.addParameterListener(ParamIDs::Amplifier::Bypass,      this);
+        apvtsRef.addParameterListener(ParamIDs::Amplifier::Bass,        this);
+        apvtsRef.addParameterListener(ParamIDs::Amplifier::Mid,         this);
+        apvtsRef.addParameterListener(ParamIDs::Amplifier::Treble,      this);
+        apvtsRef.addParameterListener(ParamIDs::Amplifier::Presence,    this);
+        apvtsRef.addParameterListener(ParamIDs::Amplifier::Gain,        this);
+        apvtsRef.addParameterListener(ParamIDs::Amplifier::Level,       this);
     }
 
     //------------------------------------------------------
-    void AmpComponent::setupKnob(juce::Slider& s, double min, double max)
+    void AmpComponent::setupKnob(juce::Slider& s)
     {
         s.setSliderStyle(juce::Slider::RotaryHorizontalVerticalDrag);
         s.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
         s.setNumDecimalPlacesToDisplay(0);
-        s.setRange(min, max);
         s.setPopupDisplayEnabled(true, true, this);
-    }
-
-    void AmpComponent::setupLabel(juce::Label& l, const juce::String& text)
-    {
-        l.setText(text, juce::dontSendNotification);
-        l.setJustificationType(juce::Justification::centred);
-        l.setFont(juce::Font(13.0f));
-        l.setColour(juce::Label::textColourId, juce::Colours::black.withAlpha(0.7f));
     }
 
     void AmpComponent::loadImages()
     {
-        ampImage = juce::ImageCache::getFromMemory(
-            BinaryData::ampHead_png,
-            BinaryData::ampHead_pngSize
-        );
-
-        cabImage = juce::ImageCache::getFromMemory(
-            BinaryData::ampCab_png,
-            BinaryData::ampCab_pngSize
-        );
-
-        lampOffImage = juce::ImageCache::getFromMemory(
-            BinaryData::lampOff_png,
-            BinaryData::lampOff_pngSize
-        );
-
-        lampOnImage = juce::ImageCache::getFromMemory(
-            BinaryData::lampOn_png,
-            BinaryData::lampOn_pngSize
-        );
-
-        butOffImage = juce::ImageCache::getFromMemory(
-            BinaryData::ampOff_png,
-            BinaryData::ampOff_pngSize
-        );
-
-        butOnImage = juce::ImageCache::getFromMemory(
-            BinaryData::ampOn_png,
-            BinaryData::ampOn_pngSize
-        );
-
-        knobImage = juce::ImageCache::getFromMemory(
-            BinaryData::ampKnob_png,
-            BinaryData::ampKnob_pngSize
-        );
-
-        knobShadowImage = juce::ImageCache::getFromMemory(
-            BinaryData::knob_shadow_png,
-            BinaryData::knob_shadow_pngSize
-        );
+        images_.amp        = juce::ImageCache::getFromMemory(BinaryData::ampHead_png,  BinaryData::ampHead_pngSize);
+        images_.cab        = juce::ImageCache::getFromMemory(BinaryData::ampCab_png,   BinaryData::ampCab_pngSize);
+        images_.lampOff    = juce::ImageCache::getFromMemory(BinaryData::lampOff_png,  BinaryData::lampOff_pngSize);
+        images_.lampOn     = juce::ImageCache::getFromMemory(BinaryData::lampOn_png,   BinaryData::lampOn_pngSize);
+        images_.buttonOff  = juce::ImageCache::getFromMemory(BinaryData::ampOff_png,   BinaryData::ampOff_pngSize);
+        images_.buttonOn   = juce::ImageCache::getFromMemory(BinaryData::ampOn_png,    BinaryData::ampOn_pngSize);
+        images_.knob       = juce::ImageCache::getFromMemory(BinaryData::ampKnob_png,  BinaryData::ampKnob_pngSize);
     }
 
     void AmpComponent::initButtons()
     {
-        powerButton.setClickingTogglesState(true);
+        powerButton_.setClickingTogglesState(true);
 
-        powerButton.setImages(
-            true,
-            true,
-            true,
-
-            butOffImage, 1.0f, juce::Colours::transparentBlack,
-            butOffImage, 1.0f, juce::Colours::transparentBlack,
-            butOnImage, 1.0f, juce::Colours::transparentBlack
+        powerButton_.setImages(
+            true, true, true,
+            images_.buttonOff, 1.0f, juce::Colours::transparentBlack,
+            images_.buttonOff, 1.0f, juce::Colours::transparentBlack,
+            images_.buttonOn,  1.0f, juce::Colours::transparentBlack
         );
-        addAndMakeVisible(powerButton);
+        addAndMakeVisible(powerButton_);
     }
 
     void AmpComponent::initSliders()
     {
-        setupKnob(bassSlider, 0, 10);
-        setupKnob(midSlider, 0, 10);
-        setupKnob(trebleSlider, 0, 10);
-        setupKnob(levelSlider, 0, 10);
-        setupKnob(gainSlider, 0, 10);
-        setupKnob(presenceSlider, 0, 10);
+        setupKnob(knobs_.bass);
+        setupKnob(knobs_.mid);
+        setupKnob(knobs_.treble);
+        setupKnob(knobs_.level);
+        setupKnob(knobs_.gain);
+        setupKnob(knobs_.presence);
 
-        knobLnf = std::make_unique<KnobLookAndFeel>(knobImage, knobShadowImage);
+        knobLnf_ = std::make_unique<KnobLookAndFeel>(images_.knob);
 
-        bassSlider.setLookAndFeel(knobLnf.get());
-        midSlider.setLookAndFeel(knobLnf.get());
-        trebleSlider.setLookAndFeel(knobLnf.get());
-        levelSlider.setLookAndFeel(knobLnf.get());
-        gainSlider.setLookAndFeel(knobLnf.get());
-        presenceSlider.setLookAndFeel(knobLnf.get());
+        knobs_.bass     .setLookAndFeel(knobLnf_.get());
+        knobs_.mid      .setLookAndFeel(knobLnf_.get());
+        knobs_.treble   .setLookAndFeel(knobLnf_.get());
+        knobs_.level    .setLookAndFeel(knobLnf_.get());
+        knobs_.gain     .setLookAndFeel(knobLnf_.get());
+        knobs_.presence .setLookAndFeel(knobLnf_.get());
 
-        addAndMakeVisible(bassSlider);
-        addAndMakeVisible(midSlider);
-        addAndMakeVisible(trebleSlider);
-        addAndMakeVisible(levelSlider);
-        addAndMakeVisible(gainSlider);
-        addAndMakeVisible(presenceSlider);
-    }
-
-    void AmpComponent::initLabels()
-    {
-        setupLabel(bassLabel, "Bass");
-        setupLabel(midLabel, "Mid");
-        setupLabel(trebleLabel, "Treble");
-        setupLabel(levelLabel, "Level");
-        setupLabel(gainLabel, "Gain");
-        setupLabel(presenceLabel, "Presence");
-
-        addAndMakeVisible(bassLabel);
-        addAndMakeVisible(midLabel);
-        addAndMakeVisible(trebleLabel);
-        addAndMakeVisible(levelLabel);
-        addAndMakeVisible(gainLabel);
-        addAndMakeVisible(presenceLabel);
+        addAndMakeVisible(knobs_.bass);
+        addAndMakeVisible(knobs_.mid);
+        addAndMakeVisible(knobs_.treble);
+        addAndMakeVisible(knobs_.level);
+        addAndMakeVisible(knobs_.gain);
+        addAndMakeVisible(knobs_.presence);
     }
 
     void AmpComponent::initAttachments()
     {
-        attachments.bass = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
-            apvtsRef, ParamIDs::ampBass, bassSlider);
+        attachments_.bass = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
+            apvtsRef, ParamIDs::Amplifier::Bass, knobs_.bass);
 
-        attachments.mid = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
-            apvtsRef, ParamIDs::ampMid, midSlider);
+        attachments_.mid = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
+            apvtsRef, ParamIDs::Amplifier::Mid, knobs_.mid);
         
-        attachments.treble= std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
-            apvtsRef, ParamIDs::ampTreble, trebleSlider);
+        attachments_.treble= std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
+            apvtsRef, ParamIDs::Amplifier::Treble, knobs_.treble);
         
-        attachments.level = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
-            apvtsRef, ParamIDs::ampLevel, levelSlider);
+        attachments_.level = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
+            apvtsRef, ParamIDs::Amplifier::Level, knobs_.level);
 
-        attachments.gain = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
-            apvtsRef, ParamIDs::ampGain, gainSlider);
+        attachments_.gain = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
+            apvtsRef, ParamIDs::Amplifier::Gain, knobs_.gain);
 
-        attachments.presence = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
-            apvtsRef, ParamIDs::ampPresence, presenceSlider);
+        attachments_.presence = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
+            apvtsRef, ParamIDs::Amplifier::Presence, knobs_.presence);
 
-        attachments.bypass = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment>(
-            apvtsRef, ParamIDs::ampBypass, powerButton);
+        attachments_.bypass = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment>(
+            apvtsRef, ParamIDs::Amplifier::Bypass, powerButton_);
     }
 
-    //------------------------------------------------------
     void AmpComponent::parameterChanged(const juce::String&, float)
     {
         juce::MessageManager::callAsync([this]
@@ -174,119 +130,106 @@ namespace GUI
             repaint();
         });
     }
-    //------------------------------------------------------
+
     void AmpComponent::paint(juce::Graphics& g)
     {
-        float UI_SCALE = 1.1f;
-        auto area = getLocalBounds().toFloat();
+        auto cab = getCabRect();
+        g.drawImageWithin(images_.cab,
+            cab.getX(), cab.getY(), cab.getWidth(), cab.getHeight(),
+            juce::RectanglePlacement::stretchToFit);
 
-        float overlap = 72.0f * UI_SCALE;
+        auto amp = getAmpRect();
+        g.drawImageWithin(images_.amp,
+            amp.getX(), amp.getY(), amp.getWidth(), amp.getHeight(),
+            juce::RectanglePlacement::stretchToFit);
 
-        float cabTop = 0.0f;
-        float cabHeight = 0.0f;
+        auto ampF = amp.toFloat();
+        
+        float lampSize = ampF.getWidth() * AmpLayout::lampSize;
 
-        // ===== CAB =====
-        if (cabImage.isValid())
-        {
-            float imgW = (float)cabImage.getWidth();
-            float imgH = (float)cabImage.getHeight();
+        auto lampArea = juce::Rectangle<float>(
+            ampF.getX() + ampF.getWidth()  * AmpLayout::lamp.x - lampSize * 0.5f,
+            ampF.getY() + ampF.getHeight() * AmpLayout::lamp.y - lampSize * 0.5f,
+            lampSize,
+            lampSize
+        );
 
-            float scale = area.getWidth() * UI_SCALE / imgW;
+        auto* bypass = apvtsRef.getRawParameterValue(ParamIDs::Amplifier::Bypass);
 
-            float drawW = imgW * scale;
-            float drawH = imgH * scale;
+        auto isOn = bypass != nullptr && bypass->load() > 0.5f;
 
-            float x = area.getCentreX() - drawW * 0.5f;
-            float y = area.getBottom() - drawH;
-
-            cabTop = y;
-            cabHeight = drawH;
-
-            g.drawImage(cabImage,
-                        juce::Rectangle<float>(x, y, drawW, drawH));
-        }
-
-        // ===== HEAD (накладывается на CAB) =====
-        if (ampImage.isValid())
-        {
-            float imgW = (float)ampImage.getWidth();
-            float imgH = (float)ampImage.getHeight();
-
-            float scale = area.getWidth() * UI_SCALE / imgW;
-
-            float drawW = imgW * scale;
-            float drawH = imgH * scale;
-
-            float x = area.getCentreX() - drawW * 0.5f;
-
-            float y = cabTop - drawH + overlap;
-
-            g.drawImage(ampImage,
-                        juce::Rectangle<float>(x-8, y, drawW, drawH));
-        }
+        g.drawImageWithin(
+            isOn ? images_.lampOn : images_.lampOff,
+            (int)lampArea.getX(), (int)lampArea.getY(),
+            (int)lampArea.getWidth(), (int)lampArea.getHeight(),
+            juce::RectanglePlacement::centred
+        );
     }
     //------------------------------------------------------
     void AmpComponent::resized()
     {
-        auto area = getLocalBounds();
-        float UI_SCALE = 1.1f;
-        juce::Grid grid;
-        using Track = juce::Grid::TrackInfo;
-        using Fr = juce::Grid::Fr;
-        grid.templateColumns = {
-            Track(Fr(220)),
-            Track(Fr(407)),
-            Track(Fr(407)),
-            Track(Fr(407)),
-            Track(Fr(407)),
-            Track(Fr(407)),
-            Track(Fr(407)),
-            Track(Fr(407)),
-            Track(Fr(220))
-        };
+        auto body = getAmpRect().toFloat();
 
-        grid.templateRows = {
-            Track(Fr(113)),
-            Track(Fr(9)),
-            Track(Fr(3)),
-            Track(Fr(83))
-        };
-
-        grid.items = {
-            juce::GridItem(gainSlider).withArea(2, 2),
-            juce::GridItem(bassSlider).withArea(2, 3),
-            juce::GridItem(midSlider).withArea(2, 4),
-            juce::GridItem(trebleSlider).withArea(2, 5),
-            juce::GridItem(presenceSlider).withArea(2, 6),
-            juce::GridItem(levelSlider).withArea(2, 7),
-            juce::GridItem(powerButton).withArea(2, 8),
-
-            juce::GridItem(gainLabel).withArea(3, 2),
-            juce::GridItem(bassLabel).withArea(3, 3),
-            juce::GridItem(midLabel).withArea(3, 4),
-            juce::GridItem(trebleLabel).withArea(3, 5),
-            juce::GridItem(presenceLabel).withArea(3, 6),
-            juce::GridItem(levelLabel).withArea(3, 7)
-        };
-
-        grid.performLayout(area);
+        placeCentered(knobs_.gain,      body,   AmpLayout::gain);
+        placeCentered(knobs_.bass,      body,   AmpLayout::bass);
+        placeCentered(knobs_.mid,       body,   AmpLayout::mid);
+        placeCentered(knobs_.treble,    body,   AmpLayout::treble);
+        placeCentered(knobs_.presence,  body,   AmpLayout::presence);
+        placeCentered(knobs_.level,     body,   AmpLayout::level);
+        placeCentered(powerButton_,     body,   AmpLayout::button);
     }
+
+    juce::Rectangle<int> AmpComponent::getAmpRect() const
+    {
+        constexpr float aspect = AmpLayout::ampBodyAspect;
+        auto bounds = getLocalBounds();
+        int w = bounds.getWidth() * AmpLayout::ampSize;
+        int h = (int)(w / aspect);
+
+        if (h > bounds.getHeight())
+        {
+            h = bounds.getHeight();
+            w = (int)(h * aspect);
+        }
+
+        return juce::Rectangle<int>(
+            (bounds.getWidth() - w) / 2,
+            (bounds.getHeight() - h) / 2,
+            w, h
+        );
+    }
+
+    juce::Rectangle<int> AmpComponent::getCabRect() const
+    {
+        constexpr float cabAspect = AmpLayout::cabBodyAspect;
+        auto bounds = getLocalBounds();
+        int w = bounds.getWidth();
+        int h = (int)(w / cabAspect);
+        auto amp = getAmpRect();
+        int overlap = (int)(w * AmpLayout::cabOverlap);
+        return juce::Rectangle<int>(
+            (bounds.getWidth() - w) / 2,
+            amp.getBottom() - overlap,
+            w, h
+        );
+    }
+
     //------------------------------------------------------
     AmpComponent::~AmpComponent()
     {
-        apvtsRef.removeParameterListener(ParamIDs::ampBypass, this);
-        apvtsRef.removeParameterListener(ParamIDs::ampBass, this);
-        apvtsRef.removeParameterListener(ParamIDs::ampMid, this);
-        apvtsRef.removeParameterListener(ParamIDs::ampTreble, this);
-        apvtsRef.removeParameterListener(ParamIDs::ampPresence, this);
-        apvtsRef.removeParameterListener(ParamIDs::ampGain, this);
-        apvtsRef.removeParameterListener(ParamIDs::ampLevel, this);
+        apvtsRef.removeParameterListener(ParamIDs::Amplifier::Bypass,   this);
+        apvtsRef.removeParameterListener(ParamIDs::Amplifier::Bass,     this);
+        apvtsRef.removeParameterListener(ParamIDs::Amplifier::Mid,      this);
+        apvtsRef.removeParameterListener(ParamIDs::Amplifier::Treble,   this);
+        apvtsRef.removeParameterListener(ParamIDs::Amplifier::Presence, this);
+        apvtsRef.removeParameterListener(ParamIDs::Amplifier::Gain,     this);
+        apvtsRef.removeParameterListener(ParamIDs::Amplifier::Level,    this);
 
-        bassSlider.setLookAndFeel(nullptr);
-        midSlider.setLookAndFeel(nullptr);
-        trebleSlider.setLookAndFeel(nullptr);
-        levelSlider.setLookAndFeel(nullptr);
-        gainSlider.setLookAndFeel(nullptr);
-        presenceSlider.setLookAndFeel(nullptr);
+        knobs_.bass     .setLookAndFeel(nullptr);
+        knobs_.mid      .setLookAndFeel(nullptr);
+        knobs_.treble   .setLookAndFeel(nullptr);
+        knobs_.level    .setLookAndFeel(nullptr);
+        knobs_.gain     .setLookAndFeel(nullptr);
+        knobs_.presence .setLookAndFeel(nullptr);
     }
 }
