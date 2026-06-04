@@ -11,23 +11,19 @@ public:
         : ampComponent_(apvts)
     {
         addAndMakeVisible(ampComponent_);
+
+        ampComponent_.onModelLoad = [this](const juce::File& f)
+        {
+            if (onModelLoad) onModelLoad(f);
+        };
     }
 
     void resized() override
     {
-        // constexpr float aspect = 1902.0f / 677.0f;
-
-        // auto area = getLocalBounds().reduced(10);
-
-        // int w = area.getWidth();
-        // int h = juce::jmin((int)(w / aspect), area.getHeight());
-
-        // int x = (area.getWidth() - w) / 2;
-        // int y = (area.getHeight() - h) / 2;
-
-        // ampComponent_.setBounds(x, y, w, h);
         ampComponent_.setBounds(getLocalBounds());
     }
+
+    std::function<void(const juce::File&)> onModelLoad;
 
 private:
     GUI::AmpComponent ampComponent_;

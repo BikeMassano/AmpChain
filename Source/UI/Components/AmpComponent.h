@@ -39,11 +39,14 @@ namespace GUI
     }
 
     class AmpComponent final : public juce::Component,
-                    public juce::AudioProcessorValueTreeState::Listener
+                    public juce::AudioProcessorValueTreeState::Listener,
+                    private juce::ValueTree::Listener
     {
     public:
         AmpComponent(juce::AudioProcessorValueTreeState& apvts);
         ~AmpComponent() override;
+
+        std::function<void(const juce::File&)> onModelLoad;
 
         void paint(juce::Graphics& g) override;
         void resized() override;
@@ -59,6 +62,15 @@ namespace GUI
 
         juce::Rectangle<int> getAmpRect() const;
         juce::Rectangle<int> getCabRect() const;
+
+        void updateModelLabel_();
+        void valueTreeRedirected(juce::ValueTree&) override { updateModelLabel_(); }
+        void valueTreePropertyChanged(juce::ValueTree&, const juce::Identifier&) override { updateModelLabel_(); }
+
+        juce::TextButton loadModelButton_ { "LOAD MODEL" };
+        juce::Label modelNameLabel_;
+
+        std::unique_ptr<juce::FileChooser> fileChooser_;
 
         juce::AudioProcessorValueTreeState& apvtsRef;
 

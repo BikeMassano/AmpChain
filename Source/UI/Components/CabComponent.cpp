@@ -4,9 +4,8 @@
 
 namespace GUI
 {
-    CabComponent::CabComponent(juce::AudioProcessorValueTreeState& apvts,
-                               std::function<void(const juce::File&)> onIRLoaded)
-        : apvtsRef_(apvts), onIRLoaded_(std::move(onIRLoaded))
+    CabComponent::CabComponent(juce::AudioProcessorValueTreeState& apvts)
+        : apvtsRef_(apvts)
     {
         cabImage_ = juce::ImageCache::getFromMemory(
             BinaryData::cab_png,
@@ -14,7 +13,6 @@ namespace GUI
 
         apvtsRef_.addParameterListener(ParamIDs::Cabinet::Bypass, this);
 
-        // --- IR name label ---
         irNameLabel_.setText("No IR loaded", juce::dontSendNotification);
         irNameLabel_.setFont(juce::Font(13.0f));
         irNameLabel_.setColour(juce::Label::textColourId,
@@ -23,26 +21,19 @@ namespace GUI
         irNameLabel_.setMinimumHorizontalScale(1.0f); // allow ellipsis on overflow
         addAndMakeVisible(irNameLabel_);
 
-        // --- Load IR button (↑) ---
-        irLoadButton_.setButtonText(juce::CharPointer_UTF8("\xe2\x86\x91")); // ↑
+        irLoadButton_.setButtonText(juce::CharPointer_UTF8("Load IR"));
         irLoadButton_.setTooltip("Load impulse response");
         irLoadButton_.onClick = [this] { openIRFilePicker(); };
         addAndMakeVisible(irLoadButton_);
 
-        // --- Clear IR button (✕) ---
-        irClearButton_.setButtonText(juce::CharPointer_UTF8("\xe2\x9c\x95")); // ✕
+        apvtsRef_.state.addListener(this);
+        updateIRLabel_();
+
+        irClearButton_.setButtonText(juce::CharPointer_UTF8("\xe2\x9c\x95"));
         irClearButton_.setTooltip("Remove impulse response");
         irClearButton_.onClick = [this] { clearIR(); };
-        irClearButton_.setEnabled(false); // disabled until an IR is loaded
+        irClearButton_.setEnabled(false);
         addAndMakeVisible(irClearButton_);
-
-        // --- "Cab simulation" label ---
-        cabLabel_.setText("Cab simulation", juce::dontSendNotification);
-        cabLabel_.setFont(juce::Font(13.0f));
-        cabLabel_.setColour(juce::Label::textColourId,
-                            juce::Colours::lightgrey);
-        cabLabel_.setJustificationType(juce::Justification::centredLeft);
-        addAndMakeVisible(cabLabel_);
 
         // --- Power toggle ---
         powerButton_.setClickingTogglesState(true);
@@ -60,6 +51,7 @@ namespace GUI
     CabComponent::~CabComponent()
     {
         apvtsRef_.removeParameterListener(ParamIDs::Cabinet::Bypass, this);
+        apvtsRef_.state.removeListener(this);
     }
 
     void CabComponent::paint(juce::Graphics& g)
@@ -84,30 +76,18 @@ namespace GUI
 
     void CabComponent::resized()
     {
-        auto area = getLocalBounds().reduced(8);
-
-        // ── IR row (bottom) ──────────────────────────────────────────────
-        // [ irNameLabel_ (flex) | irLoadButton_ 28px | irClearButton_ 28px ]
+        auto area = getLocalBounds();
         {
-            auto row = area.removeFromBottom(28);
-            area.removeFromBottom(4); // gap
+            const int btnH   = 32;
+            const int btnW   = 100;
+            const int clearW = 32;
+            const int stripY = 6;
+            const int startX = 6;
 
-            irClearButton_.setBounds(row.removeFromRight(28));
-            row.removeFromRight(4);
-            irLoadButton_.setBounds(row.removeFromRight(28));
-            row.removeFromRight(6);
-            irNameLabel_.setBounds(row);
-        }
-
-        // ── Power toggle row (above IR row) ─────────────────────────────
-        // [ cabLabel_ (flex) | powerButton_ 56px ]
-        {
-            auto row = area.removeFromBottom(28);
-            area.removeFromBottom(4); // gap
-
-            powerButton_.setBounds(row.removeFromRight(56));
-            row.removeFromRight(8);
-            cabLabel_.setBounds(row);
+            irLoadButton_ .setBounds(startX,                    stripY, btnW,   btnH);
+            irClearButton_.setBounds(startX + btnW + 4,         stripY, clearW, btnH);
+            powerButton_  .setBounds(startX, stripY + btnH, btnW, btnH);
+            irNameLabel_  .setBounds(startX + btnW + clearW + 12, stripY, area.getWidth() - btnW - clearW - 18, btnH);
         }
     }
 
@@ -137,8 +117,8 @@ namespace GUI
                                        juce::Colours::white);
                 irClearButton_.setEnabled(true);
 
-                if (onIRLoaded_)
-                    onIRLoaded_(result);
+                if (onIRLoad)
+                    onIRLoad(result);
             }
         });
     }
@@ -150,8 +130,24 @@ namespace GUI
                                juce::Colours::grey);
         irClearButton_.setEnabled(false);
 
-        // Notify the processor that IR was cleared (pass an invalid File)
-        if (onIRLoaded_)
-            onIRLoaded_(juce::File{});
+        if (onIRLoad)
+            onIRLoad(juce::File{});
+    }
+
+    void CabComponent::updateIRLabel_()
+    {
+        auto path = apvtsRef_.state.getProperty("irPath").toString();
+        auto name = path.isNotEmpty()
+            ? juce::File(path).getFileNameWithoutExtension()
+            : "No IR loaded";
+        auto colour = path.isNotEmpty() ? juce::Colours::white : juce::Colours::grey;
+        bool hasIR = path.isNotEmpty();
+
+        juce::MessageManager::callAsync([this, name, colour, hasIR]
+        {
+            irNameLabel_.setText(name, juce::dontSendNotification);
+            irNameLabel_.setColour(juce::Label::textColourId, colour);
+            irClearButton_.setEnabled(hasIR);
+        });
     }
 }

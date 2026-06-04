@@ -15,8 +15,22 @@ namespace DSP
 
     void AmpModule::prepare(const juce::dsp::ProcessSpec& spec)
     {
-        sampleRate_ = spec.sampleRate;
-        maxBlockSize_ = (int)spec.maximumBlockSize;
+        // Oversampling
+        oversampling_ = std::make_unique<juce::dsp::Oversampling<float>>
+        (
+            spec.numChannels,
+            1,
+            juce::dsp::Oversampling<float>::filterHalfBandPolyphaseIIR
+        );
+
+        oversampling_->initProcessing(spec.maximumBlockSize);
+
+        juce::dsp::ProcessSpec osSpec = spec;
+        osSpec.sampleRate *= oversampling_->getOversamplingFactor();
+        osSpec.maximumBlockSize *= oversampling_->getOversamplingFactor();
+
+        sampleRate_ = osSpec.sampleRate;
+        maxBlockSize_ = (int)osSpec.maximumBlockSize;
 
         inputPtrs_.resize(kMaxModelChannels);
         outputPtrs_.resize(kMaxModelChannels);
@@ -36,41 +50,49 @@ namespace DSP
         if (bypassed_) 
             return;
 
-        auto& block = context.getOutputBlock();
+        std::unique_lock<std::mutex> lock(modelMutex_, std::try_to_lock);
+        if (!lock.owns_lock()) return; // пропустить блок если идёт загрузка
 
-        const int numSamples = (int) block.getNumSamples();
-        const int numChannels = (int) block.getNumChannels();
+        auto& audioBlock = context.getOutputBlock();
 
-        if (model_[0] != nullptr && model_[1] != nullptr)
+        juce::dsp::AudioBlock<float> upBlock = oversampling_->processSamplesUp(audioBlock);
+
+        const int numSamples = (int) upBlock.getNumSamples();
+        const int numChannels = (int) upBlock.getNumChannels();
+
+        if (model_[0] == nullptr || model_[1] == nullptr)
+            return;
+        
+        const int modelInputs  = model_[0]->NumInputChannels();
+        const int modelOutputs = model_[0]->NumOutputChannels();
+        
+        if (modelInputs == 1)
         {
-            const int modelInputs  = model_[0]->NumInputChannels();
-            const int modelOutputs = model_[0]->NumOutputChannels();
-            
-            if (modelInputs == 1)
+            // Моно модель — каждый канал через свой независимый экземпляр
+            for (size_t ch = 0; ch < numChannels && ch < 2; ch++)
             {
-                // Моно модель — каждый канал через свой независимый экземпляр
-                for (size_t ch = 0; ch < numChannels && ch < 2; ch++)
-                {
-                    if (model_[ch] == nullptr) continue;
+                if (model_[ch] == nullptr) continue;
 
-                    auto* data = block.getChannelPointer(ch);
-                    NAM_SAMPLE* in[1]  = { data };
-                    NAM_SAMPLE* out[1] = { data };
-                    model_[ch]->process(in, out, numSamples);
-                }
-            }
-            else
-            {
-                // Мультиканальная модель — передаём все каналы сразу
-                for (size_t ch = 0; ch < modelInputs && ch < numChannels; ch++)
-                {
-                    inputPtrs_[ch]  = block.getChannelPointer(ch);
-                    outputPtrs_[ch] = block.getChannelPointer(ch);
-                }
-
-                model_[0]->process(inputPtrs_.data(), outputPtrs_.data(), numSamples);
+                auto* data = upBlock.getChannelPointer(ch);
+                NAM_SAMPLE* in[1]  = { data };
+                NAM_SAMPLE* out[1] = { data };
+                model_[ch]->process(in, out, numSamples);
             }
         }
+        else
+        {
+            // Мультиканальная модель — передаём все каналы сразу
+            for (size_t ch = 0; ch < modelInputs && ch < numChannels; ch++)
+            {
+                inputPtrs_[ch]  = upBlock.getChannelPointer(ch);
+                outputPtrs_[ch] = upBlock.getChannelPointer(ch);
+            }
+
+            model_[0]->process(inputPtrs_.data(), outputPtrs_.data(), numSamples);
+        }
+        
+
+        oversampling_->processSamplesDown(audioBlock);
 
         toneStack_.process(context);
     }
@@ -79,7 +101,9 @@ namespace DSP
     {
         if (!file.existsAsFile())
             return false;
-        
+
+        std::lock_guard<std::mutex> lock(modelMutex_);
+
         for (auto& m : model_) m.reset();
 
         try
@@ -92,6 +116,8 @@ namespace DSP
                 if (m != nullptr)
                     m->ResetAndPrewarm(sampleRate_, maxBlockSize_);
             }
+
+            setGain(gainNorm_);
 
             return model_[0] != nullptr;
         }

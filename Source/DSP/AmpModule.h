@@ -63,9 +63,12 @@ namespace DSP
         using FilterCoefs = juce::dsp::IIR::Coefficients<float>;
         using Duplicator = juce::dsp::ProcessorDuplicator<Filter, FilterCoefs>;
 
+        std::unique_ptr<juce::dsp::Oversampling<float>> oversampling_;
+
         // Все модели nam имеют внутреннюю память
         // Поэтому используется массив моделей
         std::array<std::unique_ptr<nam::DSP>, 2> model_;
+        std::mutex modelMutex_;
         
         std::vector<NAM_SAMPLE*> inputPtrs_;
         std::vector<NAM_SAMPLE*> outputPtrs_;
@@ -82,11 +85,11 @@ namespace DSP
         int maxBlockSize_ = 512;
         std::atomic<bool> bypassed_ = false;
 
-        float gainNorm_ = 0.5f;
-        float bassVal_= 0.5f;
-        float midVal_= 0.5f;
-        float trebleVal_= 0.5f;
-        float presenceVal_ = 0.5f;
+        float gainNorm_ =    5.f;
+        float bassVal_=      5.f;
+        float midVal_=       5.f;
+        float trebleVal_=    5.f;
+        float presenceVal_ = 5.f;
 
         void updateFilters_();
     };

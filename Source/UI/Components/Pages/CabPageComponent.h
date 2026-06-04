@@ -7,10 +7,14 @@
 class CabPageComponent : public juce::Component
 {
 public:
-    CabPageComponent(juce::AudioProcessorValueTreeState& apvts,
-                    std::function<void(const juce::File&)> onIRLoaded)
-        : cabComponent_(apvts, std::move(onIRLoaded)) 
+    CabPageComponent(juce::AudioProcessorValueTreeState& apvts)
+        : cabComponent_(apvts) 
     {
+        cabComponent_.onIRLoad = [this](const juce::File& f)
+        {
+            if (onIRLoad) onIRLoad(f);
+        };
+
         addAndMakeVisible(cabComponent_);
     }
 
@@ -18,6 +22,8 @@ public:
     {
         cabComponent_.setBounds(getLocalBounds());
     }
+
+    std::function<void(const juce::File&)> onIRLoad;
 
 private:
     GUI::CabComponent cabComponent_;

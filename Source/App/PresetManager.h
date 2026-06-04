@@ -21,6 +21,7 @@ public:
     juce::StringArray getAllPresets() const;
     juce::String getCurrentPreset() const;
 
+    std::function<void(const juce::ValueTree&)> onPresetLoaded;
 private:
     void valueTreeRedirected(juce::ValueTree& treeWhichHasBeenChanged) override;
 

@@ -31,6 +31,34 @@ namespace GUI
         initSliders();
         initAttachments();
 
+        modelNameLabel_.setJustificationType(juce::Justification::centredLeft);
+        modelNameLabel_.setFont(juce::Font(13.0f));
+        modelNameLabel_.setColour(juce::Label::textColourId, juce::Colours::grey);
+        modelNameLabel_.setMinimumHorizontalScale(1.0f);
+        addAndMakeVisible(modelNameLabel_);
+
+        loadModelButton_.setButtonText("Load NAM model");
+        loadModelButton_.setTooltip("Load NAM model");
+        loadModelButton_.onClick = [this]
+        {
+            fileChooser_ = std::make_unique<juce::FileChooser>(
+                "Load NAM Model", juce::File{}, "*.nam");
+
+            fileChooser_->launchAsync(
+                juce::FileBrowserComponent::openMode |
+                juce::FileBrowserComponent::canSelectFiles,
+                [this](const juce::FileChooser& fc)
+                {
+                    auto file = fc.getResult();
+                    if (file.existsAsFile() && onModelLoad)
+                        onModelLoad(file);
+                });
+        };
+        addAndMakeVisible(loadModelButton_);
+
+        apvtsRef.state.addListener(this);
+        updateModelLabel_();
+
         apvtsRef.addParameterListener(ParamIDs::Amplifier::Bypass,      this);
         apvtsRef.addParameterListener(ParamIDs::Amplifier::Bass,        this);
         apvtsRef.addParameterListener(ParamIDs::Amplifier::Mid,         this);
@@ -177,6 +205,15 @@ namespace GUI
         placeCentered(knobs_.presence,  body,   AmpLayout::presence);
         placeCentered(knobs_.level,     body,   AmpLayout::level);
         placeCentered(powerButton_,     body,   AmpLayout::button);
+
+        const int btnH   = 32;
+        const int btnW   = 140;
+        const int labelW = (int)body.getWidth() - btnW - 8;
+        const int stripY = 6;
+        const int startX = 6;
+
+        loadModelButton_.setBounds(startX,              stripY, btnW,   btnH);
+        modelNameLabel_ .setBounds(startX + btnW + 8,   stripY, labelW, btnH);
     }
 
     juce::Rectangle<int> AmpComponent::getAmpRect() const
@@ -214,6 +251,21 @@ namespace GUI
         );
     }
 
+    void AmpComponent::updateModelLabel_()
+    {
+        auto path = apvtsRef.state.getProperty("namPath").toString();
+        auto name = path.isNotEmpty()
+            ? juce::File(path).getFileNameWithoutExtension()
+            : "No model";
+        auto colour = path.isNotEmpty() ? juce::Colours::white : juce::Colours::grey;
+
+        juce::MessageManager::callAsync([this, name, colour]
+        {
+            modelNameLabel_.setText(name, juce::dontSendNotification);
+            modelNameLabel_.setColour(juce::Label::textColourId, colour);
+        });
+    }
+
     //------------------------------------------------------
     AmpComponent::~AmpComponent()
     {
@@ -224,6 +276,8 @@ namespace GUI
         apvtsRef.removeParameterListener(ParamIDs::Amplifier::Presence, this);
         apvtsRef.removeParameterListener(ParamIDs::Amplifier::Gain,     this);
         apvtsRef.removeParameterListener(ParamIDs::Amplifier::Level,    this);
+
+        apvtsRef.state.removeListener(this);
 
         knobs_.bass     .setLookAndFeel(nullptr);
         knobs_.mid      .setLookAndFeel(nullptr);

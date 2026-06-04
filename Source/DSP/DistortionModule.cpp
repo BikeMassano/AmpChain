@@ -9,7 +9,7 @@ namespace DSP
         (
             spec.numChannels,
             2,
-            juce::dsp::Oversampling<float>::filterHalfBandPolyphaseIIR
+            juce::dsp::Oversampling<float>::filterHalfBandFIREquiripple
         );
 
         oversampling_->initProcessing(spec.maximumBlockSize);
@@ -32,7 +32,7 @@ namespace DSP
         chain_.get<postGainIndex>().setRampDurationSeconds(0.05f);
 
         sampleRate_ = osSpec.sampleRate;
-        *chain_.get<dcFilterIndex>().state = *FilterCoefs::makeHighPass(sampleRate_, 80.0f);
+        *chain_.get<dcFilterIndex>().state = *FilterCoefs::makeHighPass(sampleRate_, 20.0f);
         *chain_.get<filterIndex>().state = *FilterCoefs::makeLowPass(sampleRate_, 10000.0f);
     }
 
