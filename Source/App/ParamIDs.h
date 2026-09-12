@@ -1,29 +1,53 @@
 namespace ParamIDs
 {
-    static constexpr auto gateThreshold = "gateThreshold";
-    static constexpr auto gateAttack = "gateAttack";
-    static constexpr auto gateRelease = "gateRelease";
-    static constexpr auto gateBypass = "gateBypass";
+    namespace Gate
+    {
+        inline constexpr auto Threshold = "gate.threshold";
+        inline constexpr auto Attack    = "gate.attack";
+        inline constexpr auto Release   = "gate.release";
+        inline constexpr auto Bypass    = "gate.bypass";
+    }
 
-    static constexpr auto compThreshold = "compThreshold";
-    static constexpr auto compRatio = "compRatio";
-    static constexpr auto compAttack = "compAttack";
-    static constexpr auto compRelease = "compRelease";
-    static constexpr auto compMakeup = "compMakeup";
-    static constexpr auto compBypass = "compBypass";
+    namespace Compressor
+    {
+        inline constexpr auto Threshold = "comp.threshold";
+        inline constexpr auto Ratio     = "comp.ratio";
+        inline constexpr auto Attack    = "comp.attack";
+        inline constexpr auto Release   = "comp.release";
+        inline constexpr auto Makeup    = "comp.makeup";
+        inline constexpr auto Bypass    = "comp.bypass";
+    }
 
-    static constexpr auto distTone = "distTone";
-    static constexpr auto distLevel = "distLevel";
-    static constexpr auto distDist = "distDist";
-    static constexpr auto distBypass = "distBypass";
+    namespace Distortion
+    {
+        inline constexpr auto Tone      = "dist.tone";
+        inline constexpr auto Level     = "dist.level";
+        inline constexpr auto Dist      = "dist.dist";
+        inline constexpr auto Bypass    = "dist.bypass";
+    }
 
-    static constexpr auto ampBass = "ampBass";
-    static constexpr auto ampMid = "ampMid";
-    static constexpr auto ampTreble = "ampTreble";
-    static constexpr auto ampLevel = "ampLevel";
-    static constexpr auto ampGain = "ampGain";
-    static constexpr auto ampPresence = "ampPresence";
-    static constexpr auto ampBypass = "ampBypass";
+    namespace Amplifier
+    {
+        inline constexpr auto Bass      = "amp.bass";
+        inline constexpr auto Mid       = "amp.mid";
+        inline constexpr auto Treble    = "amp.treble";
+        inline constexpr auto Level     = "amp.level";
+        inline constexpr auto Gain      = "amp.gain";
+        inline constexpr auto Presence  = "amp.presence";
+        inline constexpr auto Bypass    = "amp.bypass";
+    }
 
-    static constexpr auto cabBypass = "cabBypass";
+    namespace Flanger
+    {
+        inline constexpr auto Rate      = "flanger.rate";
+        inline constexpr auto Range     = "flanger.range";
+        inline constexpr auto Feedback  = "flanger.feedback";
+        inline constexpr auto Bypass    = "flanger.bypass";
+    }
+
+    namespace Cabinet
+    {
+        inline constexpr auto Bypass    = "cab.bypass";
+        inline constexpr auto IRPath    = "cab.IRPath";
+    }
 }

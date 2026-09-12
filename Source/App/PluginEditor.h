@@ -6,6 +6,32 @@
 #include "../UI/Components/Pages/AmpPageComponent.h"
 #include "../UI/Components/Pages/CabPageComponent.h"
 
+namespace EditorLayout
+{
+    
+    constexpr float topBarHeight          = 0.062f;
+    constexpr float bottomBarHeight       = 0.062f;
+
+    constexpr float rightBlockWidth      = 0.25f;
+
+    constexpr float pedalBtnWidth   = 0.075f;
+
+    constexpr float presetArrowWidth    = 0.025f;
+    constexpr float presetActionWidth   = 0.04f;
+    constexpr float presetBoxWidth      = 0.18f;
+
+    constexpr float presetHeight    = 0.037f;
+
+    constexpr int presetGap         = 4;
+    constexpr int panelPadding      = 10;
+
+    constexpr int meterWidth        = 150;
+    constexpr int meterHeight       = 8;
+    constexpr int meterGap          = 5;
+
+    constexpr int monoButtonWidth   = 80;
+    }
+
 
 //==============================================================================
 class AudioPluginAudioProcessorEditor final : public juce::AudioProcessorEditor,

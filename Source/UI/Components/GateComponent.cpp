@@ -4,137 +4,102 @@
 
 namespace GUI
 {
+    namespace
+    {
+        void placeCentered(juce::Component& component,
+                            const juce::Rectangle<float>& body,
+                            GUI::GateLayout::ControlDesc desc)
+        {
+            auto size = body.getWidth() * desc.size;
+            
+            component.setBounds(
+                juce::Rectangle<int>(
+                    (int)(body.getX() + body.getWidth()  * desc.x - size * 0.5f),
+                    (int)(body.getY() + body.getHeight() * desc.y - size * 0.5f),
+                    (int)size,
+                    (int)size
+                )
+            );
+        }
+    }
+
     GateComponent::GateComponent(juce::AudioProcessorValueTreeState& apvts)
-        : apvtsRef(apvts)
+        : apvtsRef_(apvts)
     {
         loadImages();
         initButtons();
         initSliders();
-        initLabels();
         initAttachments();
 
-        apvtsRef.addParameterListener(ParamIDs::gateBypass, this);
-        apvtsRef.addParameterListener(ParamIDs::gateThreshold, this);
-        apvtsRef.addParameterListener(ParamIDs::gateAttack, this);
-        apvtsRef.addParameterListener(ParamIDs::gateRelease, this);
+        apvtsRef_.addParameterListener(ParamIDs::Gate::Bypass,       this);
+        apvtsRef_.addParameterListener(ParamIDs::Gate::Threshold,    this);
+        apvtsRef_.addParameterListener(ParamIDs::Gate::Attack,       this);
+        apvtsRef_.addParameterListener(ParamIDs::Gate::Release,      this);
     }
 
-    //------------------------------------------------------
-    void GateComponent::setupKnob(juce::Slider& s, double min, double max)
+    void GateComponent::setupKnob(juce::Slider& s)
     {
         s.setSliderStyle(juce::Slider::RotaryHorizontalVerticalDrag);
         s.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
         s.setNumDecimalPlacesToDisplay(0);
-        s.setRange(min, max);
         s.setPopupDisplayEnabled(true, true, this);
-    }
-
-    void GateComponent::setupLabel(juce::Label& l, const juce::String& text)
-    {
-        l.setText(text, juce::dontSendNotification);
-        l.setJustificationType(juce::Justification::centred);
-        l.setFont(juce::Font(20.0f));
-        l.setColour(juce::Label::textColourId, juce::Colours::black.withAlpha(0.7f));
     }
 
     void GateComponent::loadImages()
     {
-        bodyImage = juce::ImageCache::getFromMemory(
-            BinaryData::body_png,
-            BinaryData::body_pngSize
-        );
-
-        lampOffImage = juce::ImageCache::getFromMemory(
-            BinaryData::lampOff_png,
-            BinaryData::lampOff_pngSize
-        );
-
-        lampOnImage = juce::ImageCache::getFromMemory(
-            BinaryData::lampOn_png,
-            BinaryData::lampOn_pngSize
-        );
-
-        butOffImage = juce::ImageCache::getFromMemory(
-            BinaryData::butOff_png,
-            BinaryData::butOff_pngSize
-        );
-
-        butOnImage = juce::ImageCache::getFromMemory(
-            BinaryData::butOn_png,
-            BinaryData::butOn_pngSize
-        );
-
-        knobImage = juce::ImageCache::getFromMemory(
-            BinaryData::knob_png,
-            BinaryData::knob_pngSize
-        );
-
-        knobShadowImage = juce::ImageCache::getFromMemory(
-            BinaryData::knob_shadow_png,
-            BinaryData::knob_shadow_pngSize
-        );
+        images_.body        = juce::ImageCache::getFromMemory(BinaryData::gate_body_png,  BinaryData::gate_body_pngSize);
+        images_.lampOff     = juce::ImageCache::getFromMemory(BinaryData::lampOff_png,    BinaryData::lampOff_pngSize);
+        images_.lampOn      = juce::ImageCache::getFromMemory(BinaryData::lampOn_png,     BinaryData::lampOn_pngSize);
+        images_.buttonOff   = juce::ImageCache::getFromMemory(BinaryData::butOff_png,     BinaryData::butOff_pngSize);
+        images_.buttonOn    = juce::ImageCache::getFromMemory(BinaryData::butOn_png,      BinaryData::butOn_pngSize);
+        images_.knob        = juce::ImageCache::getFromMemory(BinaryData::knob_png,       BinaryData::knob_pngSize);
     }
 
     void GateComponent::initButtons()
     {
-        powerButton.setClickingTogglesState(true);
+        powerButton_.setClickingTogglesState(true);
 
-        powerButton.setImages(
-            true,
-            true,
-            true,
-
-            butOffImage, 1.0f, juce::Colours::transparentBlack,
-            butOffImage, 1.0f, juce::Colours::transparentBlack,
-            butOnImage, 1.0f, juce::Colours::transparentBlack
+        powerButton_.setImages(
+            true, true, true,
+            images_.buttonOff,    1.0f, juce::Colours::transparentBlack,
+            images_.buttonOff,    1.0f, juce::Colours::transparentBlack,
+            images_.buttonOn,     1.0f, juce::Colours::transparentBlack
         );
-        addAndMakeVisible(powerButton);
+        addAndMakeVisible(powerButton_);
     }
 
     void GateComponent::initSliders()
     {
-        setupKnob(thresholdSlider, -100.0, 0.0);
-        setupKnob(attackSlider, 0.1, 200.0);
-        setupKnob(releaseSlider, 10.0, 1000.0);
+        setupKnob(knobs_.threshold);
+        setupKnob(knobs_.attack);
+        setupKnob(knobs_.release);
 
-        knobLnf = std::make_unique<KnobLookAndFeel>(knobImage, knobShadowImage);
+        knobLnf_ = std::make_unique<KnobLookAndFeel>(images_.knob);
 
-        thresholdSlider.setLookAndFeel(knobLnf.get());
-        attackSlider.setLookAndFeel(knobLnf.get());
-        releaseSlider.setLookAndFeel(knobLnf.get());
+        knobs_.threshold.setLookAndFeel(knobLnf_.get());
+        knobs_.attack   .setLookAndFeel(knobLnf_.get());
+        knobs_.release  .setLookAndFeel(knobLnf_.get());
 
-        addAndMakeVisible(thresholdSlider);
-        addAndMakeVisible(releaseSlider);
-        addAndMakeVisible(attackSlider);
-    }
-
-    void GateComponent::initLabels()
-    {
-        setupLabel(thresholdLabel, "Threshold (db.)");
-        setupLabel(attackLabel, "Attack (ms.)");
-        setupLabel(releaseLabel, "Release (ms.)");
-
-        addAndMakeVisible(thresholdLabel);
-        addAndMakeVisible(attackLabel);
-        addAndMakeVisible(releaseLabel);
+        addAndMakeVisible(knobs_.threshold);
+        addAndMakeVisible(knobs_.release);
+        addAndMakeVisible(knobs_.attack);
     }
 
     void GateComponent::initAttachments()
     {
-        attachments.threshold = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
-            apvtsRef, ParamIDs::gateThreshold, thresholdSlider);
+        attachments_.threshold = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
+            apvtsRef_, ParamIDs::Gate::Threshold, knobs_.threshold);
 
-        attachments.attack = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
-            apvtsRef, ParamIDs::gateAttack, attackSlider);
+        attachments_.attack = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
+            apvtsRef_, ParamIDs::Gate::Attack, knobs_.attack);
 
-        attachments.release = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
-            apvtsRef, ParamIDs::gateRelease, releaseSlider);
+        attachments_.release = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
+            apvtsRef_, ParamIDs::Gate::Release, knobs_.release);
 
-        attachments.bypass = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment>(
-            apvtsRef, ParamIDs::gateBypass, powerButton);
+        attachments_.bypass = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment>(
+            apvtsRef_, ParamIDs::Gate::Bypass, powerButton_);
     }
 
-    //------------------------------------------------------
     void GateComponent::parameterChanged(const juce::String&, float)
     {
         juce::MessageManager::callAsync([this]
@@ -142,119 +107,77 @@ namespace GUI
             repaint();
         });
     }
-    //------------------------------------------------------
+
     void GateComponent::paint(juce::Graphics& g)
     {
-        auto area = getLocalBounds().toFloat();
-        
-        // body
-        g.drawImageWithin(
-            bodyImage,
-            (int)area.getX(),
-            (int)area.getY(),
-            (int)area.getWidth(),
-            (int)area.getHeight(),
-            juce::RectanglePlacement::stretchToFit
-        );
-        
-        // power lamp
-        auto size = area.getWidth() * 0.16f;
+        auto body = getBodyRect();
+
+        g.drawImageWithin(images_.body,
+            body.getX(), body.getY(), body.getWidth(), body.getHeight(),
+            juce::RectanglePlacement::stretchToFit);
+
+        auto bodyF = body.toFloat();
+
+        float lampSize = bodyF.getWidth() * GateLayout::lampSize;
 
         auto lampArea = juce::Rectangle<float>(
-            area.getCentreX() - size * 0.5f,
-            area.getCentreY() + area.getHeight() * 0.08f,
-            size,
-            size
+            bodyF.getX() + bodyF.getWidth()  * GateLayout::lamp.x - lampSize * 0.5f,
+            bodyF.getY() + bodyF.getHeight() * GateLayout::lamp.y - lampSize * 0.5f,
+            lampSize,
+            lampSize
         );
 
-        auto* bypass = apvtsRef.getRawParameterValue(ParamIDs::gateBypass);
+        auto* bypass = apvtsRef_.getRawParameterValue(ParamIDs::Gate::Bypass);
+
         auto isOn = bypass != nullptr && bypass->load() > 0.5f;
 
         g.drawImageWithin(
-            isOn ? lampOnImage : lampOffImage,
-            (int)lampArea.getX(),
-            (int)lampArea.getY(),
-            (int)lampArea.getWidth(),
-            (int)lampArea.getHeight(),
+            isOn ? images_.lampOn : images_.lampOff,
+            (int)lampArea.getX(), (int)lampArea.getY(),
+            (int)lampArea.getWidth(), (int)lampArea.getHeight(),
             juce::RectanglePlacement::centred
         );
     }
-    //------------------------------------------------------
+
     void GateComponent::resized()
     {
-        auto area = getLocalBounds().reduced(12);
+        auto body = getBodyRect().toFloat();
 
-        // ===== SLIDERS ROW =====
-        auto topY = area.getY() + 10;
-        auto botY = area.getY() + 150;
-
-        // left top
-        thresholdSlider.setBounds(
-            juce::Rectangle<int>(area.getX() + 20, topY, 120, 120)
-        );
-
-        // right top
-        releaseSlider.setBounds(
-            juce::Rectangle<int>(area.getRight() - 140, topY, 120, 120)
-        );
-
-        // bottom center
-        attackSlider.setBounds(
-            juce::Rectangle<int>(area.getCentreX() - 60, botY, 120, 120)
-        );
-
-        // ===== THRESHOLD LABEL =====
-        thresholdLabel.setBounds(
-            juce::Rectangle<int>(
-                area.getX() + 20,
-                topY + 120,
-                120,
-                20
-            )
-        );
-
-        // ===== RELEASE LABEL =====
-        releaseLabel.setBounds(
-            juce::Rectangle<int>(
-                area.getRight() - 140,
-                topY + 120,
-                120,
-                20
-            )
-        );
-
-        // ===== ATTACK LABEL =====
-        attackLabel.setBounds(
-            juce::Rectangle<int>(
-                area.getCentreX() - 60,
-                botY + 120,
-                120,
-                20
-            )
-        );
-
-        // ===== POWER BUTTON POSITION =====
-        auto buttonSize = area.getWidth() * 0.18f;
-
-        juce::Rectangle<int> buttonBounds(
-            (int)(area.getCentreX() - buttonSize * 0.5f),
-            (int)(area.getCentreY() + area.getHeight() * 0.29f - buttonSize * 0.5f),
-            (int)buttonSize,
-            (int)buttonSize
-        );
-
-        powerButton.setBounds(buttonBounds);
+        placeCentered(knobs_.threshold, body,   GateLayout::threshold);
+        placeCentered(knobs_.release,   body,   GateLayout::release);
+        placeCentered(knobs_.attack,    body,   GateLayout::attack);
+        placeCentered(powerButton_,     body,   GateLayout::button);
     }
-    //------------------------------------------------------
+
+    juce::Rectangle<int> GateComponent::getBodyRect() const
+    {
+        constexpr float aspect = GateLayout::bodyAspect;
+        auto bounds = getLocalBounds();
+        int w = bounds.getWidth();
+        int h = (int)(w / aspect);
+
+        if (h > bounds.getHeight())
+        {
+            h = bounds.getHeight();
+            w = (int)(h * aspect);
+        }
+
+        return juce::Rectangle<int>(
+            (bounds.getWidth() - w) / 2,
+            (bounds.getHeight() - h) / 2,
+            w, h
+        );
+    }
+
     GateComponent::~GateComponent()
     {
-        apvtsRef.removeParameterListener(ParamIDs::gateBypass, this);
-        apvtsRef.removeParameterListener(ParamIDs::gateThreshold, this);
-        apvtsRef.removeParameterListener(ParamIDs::gateAttack, this);
-        apvtsRef.removeParameterListener(ParamIDs::gateRelease, this);
+        apvtsRef_.removeParameterListener(ParamIDs::Gate::Bypass,    this);
+        apvtsRef_.removeParameterListener(ParamIDs::Gate::Threshold, this);
+        apvtsRef_.removeParameterListener(ParamIDs::Gate::Attack,    this);
+        apvtsRef_.removeParameterListener(ParamIDs::Gate::Release,   this);
 
-        thresholdSlider.setLookAndFeel(nullptr);
-        attackSlider.setLookAndFeel(nullptr);
-        releaseSlider.setLookAndFeel(nullptr);
+        knobs_.threshold.setLookAndFeel(nullptr);
+        knobs_.attack   .setLookAndFeel(nullptr);
+        knobs_.release  .setLookAndFeel(nullptr);
     }
 }

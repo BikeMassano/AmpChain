@@ -11,19 +11,19 @@ public:
         : ampComponent_(apvts)
     {
         addAndMakeVisible(ampComponent_);
+
+        ampComponent_.onModelLoad = [this](const juce::File& f)
+        {
+            if (onModelLoad) onModelLoad(f);
+        };
     }
 
     void resized() override
     {
-        auto area = getLocalBounds();
-
-        juce::FlexBox mainRow;
-        mainRow.flexDirection = juce::FlexBox::Direction::row;
-
-        mainRow.items.add(juce::FlexItem(ampComponent_).withFlex(1).withMargin(0));
-
-        mainRow.performLayout(area);
+        ampComponent_.setBounds(getLocalBounds());
     }
+
+    std::function<void(const juce::File&)> onModelLoad;
 
 private:
     GUI::AmpComponent ampComponent_;

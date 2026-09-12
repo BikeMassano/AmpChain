@@ -4,137 +4,103 @@
 
 namespace GUI
 {
+    namespace
+    {
+        void placeCentered(juce::Component& component,
+                            const juce::Rectangle<float>& body,
+                            GUI::DistortionLayout::ControlDesc desc)
+        {
+            auto size = body.getWidth() * desc.size;
+            
+            component.setBounds(
+                juce::Rectangle<int>(
+                    (int)(body.getX() + body.getWidth()  * desc.x - size * 0.5f),
+                    (int)(body.getY() + body.getHeight() * desc.y - size * 0.5f),
+                    (int)size,
+                    (int)size
+                )
+            );
+        }
+    }
+
     DistortionComponent::DistortionComponent(juce::AudioProcessorValueTreeState& apvts)
-        : apvtsRef(apvts)
+        : apvtsRef_(apvts)
     {
         loadImages();
         initButtons();
         initSliders();
-        initLabels();
         initAttachments();
 
-        apvtsRef.addParameterListener(ParamIDs::distBypass, this);
-        apvtsRef.addParameterListener(ParamIDs::distDist, this);
-        apvtsRef.addParameterListener(ParamIDs::distLevel, this);
-        apvtsRef.addParameterListener(ParamIDs::distTone, this);
+        apvtsRef_.addParameterListener(ParamIDs::Distortion::Bypass, this);
+        apvtsRef_.addParameterListener(ParamIDs::Distortion::Dist,   this);
+        apvtsRef_.addParameterListener(ParamIDs::Distortion::Level,  this);
+        apvtsRef_.addParameterListener(ParamIDs::Distortion::Tone,   this);
     }
 
     //------------------------------------------------------
-    void DistortionComponent::setupKnob(juce::Slider& s, double min, double max)
+    void DistortionComponent::setupKnob(juce::Slider& s)
     {
         s.setSliderStyle(juce::Slider::RotaryHorizontalVerticalDrag);
         s.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
         s.setNumDecimalPlacesToDisplay(0);
-        s.setRange(min, max);
         s.setPopupDisplayEnabled(true, true, this);
-    }
-
-    void DistortionComponent::setupLabel(juce::Label& l, const juce::String& text)
-    {
-        l.setText(text, juce::dontSendNotification);
-        l.setJustificationType(juce::Justification::centred);
-        l.setFont(juce::Font(20.0f));
-        l.setColour(juce::Label::textColourId, juce::Colours::black.withAlpha(0.7f));
     }
 
     void DistortionComponent::loadImages()
     {
-        bodyImage = juce::ImageCache::getFromMemory(
-            BinaryData::body_png,
-            BinaryData::body_pngSize
-        );
-
-        lampOffImage = juce::ImageCache::getFromMemory(
-            BinaryData::lampOff_png,
-            BinaryData::lampOff_pngSize
-        );
-
-        lampOnImage = juce::ImageCache::getFromMemory(
-            BinaryData::lampOn_png,
-            BinaryData::lampOn_pngSize
-        );
-
-        butOffImage = juce::ImageCache::getFromMemory(
-            BinaryData::butOff_png,
-            BinaryData::butOff_pngSize
-        );
-
-        butOnImage = juce::ImageCache::getFromMemory(
-            BinaryData::butOn_png,
-            BinaryData::butOn_pngSize
-        );
-
-        knobImage = juce::ImageCache::getFromMemory(
-            BinaryData::knob_png,
-            BinaryData::knob_pngSize
-        );
-
-        knobShadowImage = juce::ImageCache::getFromMemory(
-            BinaryData::knob_shadow_png,
-            BinaryData::knob_shadow_pngSize
-        );
+        images_.body        = juce::ImageCache::getFromMemory(BinaryData::drive_body_png, BinaryData::drive_body_pngSize);
+        images_.lampOff     = juce::ImageCache::getFromMemory(BinaryData::lampOff_png,    BinaryData::lampOff_pngSize);
+        images_.lampOn      = juce::ImageCache::getFromMemory(BinaryData::lampOn_png,     BinaryData::lampOn_pngSize);
+        images_.buttonOff   = juce::ImageCache::getFromMemory(BinaryData::butOff_png,     BinaryData::butOff_pngSize);
+        images_.buttonOn    = juce::ImageCache::getFromMemory(BinaryData::butOn_png,      BinaryData::butOn_pngSize);
+        images_.knob        = juce::ImageCache::getFromMemory(BinaryData::knob_png,       BinaryData::knob_pngSize);
     }
 
     void DistortionComponent::initButtons()
     {
-        powerButton.setClickingTogglesState(true);
+        powerButton_.setClickingTogglesState(true);
 
-        powerButton.setImages(
-            true,
-            true,
-            true,
-
-            butOffImage, 1.0f, juce::Colours::transparentBlack,
-            butOffImage,  1.0f, juce::Colours::transparentBlack,
-            butOnImage,  1.0f, juce::Colours::transparentBlack
+        powerButton_.setImages(
+            true, true, true,
+            images_.buttonOff,    1.0f, juce::Colours::transparentBlack,
+            images_.buttonOff,    1.0f, juce::Colours::transparentBlack,
+            images_.buttonOn,     1.0f, juce::Colours::transparentBlack
         );
-        addAndMakeVisible(powerButton);
+        addAndMakeVisible(powerButton_);
     }
 
     void DistortionComponent::initSliders()
     {
-        setupKnob(toneSlider, 1600.0, 16000.0);
-        setupKnob(distSlider, 0.0, 30.0);
-        setupKnob(levelSlider, -12.0, 12.0);
+        setupKnob(knobs_.tone);
+        setupKnob(knobs_.dist);
+        setupKnob(knobs_.level);
 
-        knobLnf = std::make_unique<KnobLookAndFeel>(knobImage, knobShadowImage);
+        knobLnf_ = std::make_unique<KnobLookAndFeel>(images_.knob);
 
-        toneSlider.setLookAndFeel(knobLnf.get());
-        levelSlider.setLookAndFeel(knobLnf.get());
-        distSlider.setLookAndFeel(knobLnf.get());
+        knobs_.tone .setLookAndFeel(knobLnf_.get());
+        knobs_.level.setLookAndFeel(knobLnf_.get());
+        knobs_.dist .setLookAndFeel(knobLnf_.get());
 
-        addAndMakeVisible(toneSlider);
-        addAndMakeVisible(levelSlider);
-        addAndMakeVisible(distSlider);
-    }
-
-    void DistortionComponent::initLabels()
-    {
-        setupLabel(toneLabel, "Tone");
-        setupLabel(levelLabel, "Level");
-        setupLabel(distLabel, "Dist");
-
-        addAndMakeVisible(toneLabel);
-        addAndMakeVisible(levelLabel);
-        addAndMakeVisible(distLabel);
+        addAndMakeVisible(knobs_.tone);
+        addAndMakeVisible(knobs_.level);
+        addAndMakeVisible(knobs_.dist);
     }
 
     void DistortionComponent::initAttachments()
     {
-        attachments.tone = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
-            apvtsRef, ParamIDs::distTone, toneSlider);
+        attachments_.tone = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
+            apvtsRef_, ParamIDs::Distortion::Tone, knobs_.tone);
 
-        attachments.level = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
-            apvtsRef, ParamIDs::distLevel, levelSlider);
+        attachments_.level = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
+            apvtsRef_, ParamIDs::Distortion::Level, knobs_.level);
 
-        attachments.dist = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
-            apvtsRef, ParamIDs::distDist, distSlider);
+        attachments_.dist = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
+            apvtsRef_, ParamIDs::Distortion::Dist, knobs_.dist);
 
-        attachments.bypass = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment>(
-            apvtsRef, ParamIDs::distBypass, powerButton);
+        attachments_.bypass = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment>(
+            apvtsRef_, ParamIDs::Distortion::Bypass, powerButton_);
     }
 
-    //------------------------------------------------------
     void DistortionComponent::parameterChanged(const juce::String&, float)
     {
         juce::MessageManager::callAsync([this]
@@ -142,123 +108,75 @@ namespace GUI
             repaint();
         });
     }
-    //------------------------------------------------------
+
     void DistortionComponent::paint(juce::Graphics& g)
     {
-        auto area = getLocalBounds().toFloat();
-        
-        // body
-        g.drawImageWithin(
-            bodyImage,
-            (int)area.getX(),
-            (int)area.getY(),
-            (int)area.getWidth(),
-            (int)area.getHeight(),
-            juce::RectanglePlacement::stretchToFit
-        );
-        
-        // power lamp
-        auto size = area.getWidth() * 0.16f;
+        auto body = getBodyRect();
+
+        g.drawImageWithin(images_.body,
+            body.getX(), body.getY(), body.getWidth(), body.getHeight(),
+            juce::RectanglePlacement::stretchToFit);
+
+        auto bodyF = body.toFloat();
+        float lampSize = bodyF.getWidth() * DistortionLayout::lampSize;
 
         auto lampArea = juce::Rectangle<float>(
-            area.getCentreX() - size * 0.5f,
-            area.getCentreY() + area.getHeight() * 0.08f,
-            size,
-            size
+            bodyF.getX() + bodyF.getWidth()  * DistortionLayout::lamp.x - lampSize * 0.5f,
+            bodyF.getY() + bodyF.getHeight() * DistortionLayout::lamp.y - lampSize * 0.5f,
+            lampSize,
+            lampSize
         );
 
-        auto* bypass = apvtsRef.getRawParameterValue(ParamIDs::distBypass);
+        auto* bypass = apvtsRef_.getRawParameterValue(ParamIDs::Distortion::Bypass);
         auto isOn = bypass != nullptr && bypass->load() > 0.5f;
 
         g.drawImageWithin(
-            isOn ? lampOnImage : lampOffImage,
-            (int)lampArea.getX(),
-            (int)lampArea.getY(),
-            (int)lampArea.getWidth(),
-            (int)lampArea.getHeight(),
+            isOn ? images_.lampOn : images_.lampOff,
+            (int)lampArea.getX(), (int)lampArea.getY(),
+            (int)lampArea.getWidth(), (int)lampArea.getHeight(),
             juce::RectanglePlacement::centred
         );
     }
-    //------------------------------------------------------
+
     void DistortionComponent::resized()
     {
-        const int knobSize = 100;
-        const int gapX = 20;
-        const int labelH = 20;
+        auto body = getBodyRect().toFloat();
 
-        auto area = getLocalBounds().reduced(12);
-
-        // ===== SLIDERS ROW =====
-        auto topY = area.getY() + 10;
-        auto botY = area.getY() + 130;
-
-        // left top
-        toneSlider.setBounds(
-            juce::Rectangle<int>(area.getX() + 20, topY, 120, 120)
-        );
-
-        // right top
-        distSlider.setBounds(
-            juce::Rectangle<int>(area.getRight() - 140, topY, 120, 120)
-        );
-
-        // bottom center
-        levelSlider.setBounds(
-            juce::Rectangle<int>(area.getCentreX() - 60, botY, 120, 120)
-        );
-
-        // ===== TONE LABEL =====
-        toneLabel.setBounds(
-            juce::Rectangle<int>(
-                area.getX() + 20,
-                topY + 120,
-                120,
-                20
-            )
-        );
-
-        // ===== DIST LABEL =====
-        distLabel.setBounds(
-            juce::Rectangle<int>(
-                area.getRight() - 140,
-                topY + 120,
-                120,
-                20
-            )
-        );
-
-        // ===== MAKEUP GAIN LABEL =====
-        levelLabel.setBounds(
-            juce::Rectangle<int>(
-                area.getCentreX() - 60,
-                botY + 120,
-                120,
-                20
-            )
-        );
-
-        // ===== POWER BUTTON POSITION =====
-        auto buttonSize = area.getWidth() * 0.18f;
-
-        juce::Rectangle<int> buttonBounds(
-            (int)(area.getCentreX() - buttonSize * 0.5f),
-            (int)(area.getCentreY() + area.getHeight() * 0.29f - buttonSize * 0.5f),
-            (int)buttonSize,
-            (int)buttonSize
-        );
-
-        powerButton.setBounds(buttonBounds);
+        placeCentered(knobs_.dist,  body,   DistortionLayout::drive);
+        placeCentered(knobs_.tone,  body,   DistortionLayout::tone);
+        placeCentered(knobs_.level, body,   DistortionLayout::level);
+        placeCentered(powerButton_, body,   DistortionLayout::button);
     }
-    //------------------------------------------------------
+
+    juce::Rectangle<int> DistortionComponent::getBodyRect() const
+    {
+        constexpr float aspect = DistortionLayout::bodyAspect;
+        auto bounds = getLocalBounds();
+        int w = bounds.getWidth();
+        int h = (int)(w / aspect);
+
+        if (h > bounds.getHeight())
+        {
+            h = bounds.getHeight();
+            w = (int)(h * aspect);
+        }
+
+        return juce::Rectangle<int>(
+            (bounds.getWidth() - w) / 2,
+            (bounds.getHeight() - h) / 2,
+            w, h
+        );
+    }
+
     DistortionComponent::~DistortionComponent()
     {
-        apvtsRef.removeParameterListener(ParamIDs::distBypass, this);
-        apvtsRef.removeParameterListener(ParamIDs::distDist, this);
-        apvtsRef.removeParameterListener(ParamIDs::distLevel, this);
-        apvtsRef.removeParameterListener(ParamIDs::distTone, this);
+        apvtsRef_.removeParameterListener(ParamIDs::Distortion::Bypass,  this);
+        apvtsRef_.removeParameterListener(ParamIDs::Distortion::Dist,    this);
+        apvtsRef_.removeParameterListener(ParamIDs::Distortion::Level,   this);
+        apvtsRef_.removeParameterListener(ParamIDs::Distortion::Tone,    this);
 
-        toneSlider.setLookAndFeel(nullptr);
-        levelSlider.setLookAndFeel(nullptr);
-        distSlider.setLookAndFeel(nullptr);
+        knobs_.tone    .setLookAndFeel(nullptr);
+        knobs_.level   .setLookAndFeel(nullptr);
+        knobs_.dist    .setLookAndFeel(nullptr);
     }
 }

@@ -19,7 +19,7 @@ namespace DSP
             convolution_.process(context);
     }
 
-    void CabModule::loadIR(juce::File path)
+    void CabModule::loadIR(const juce::File path)
     {
         // проверка существования файла и его валидности
         if (!path.existsAsFile())
@@ -48,5 +48,5 @@ namespace DSP
     }
 
 
-    void CabModule::setBypassed(bool b) { bypassed_ = b; }
+    void CabModule::setBypassed(const bool b) { bypassed_ = b; }
 }

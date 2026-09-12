@@ -2,34 +2,55 @@
 
 #include <juce_audio_processors/juce_audio_processors.h>
 #include <juce_dsp/juce_dsp.h>
-#include <RTNeural/RTNeural.h>
+#include <NeuralAmpModelerCore/NAM/dsp.h>
+#include <NeuralAmpModelerCore/NAM/get_dsp.h>
+#include "DSPModule.h"
 
 namespace DSP
 {
-    class AmpModule final
+    /**
+     * @class AmpModule
+     * @brief Модуль усилителя на основе нейросетевой модели (NAM).
+     * Реализует эмуляцию гитарного усилителя с использованием
+     * нейросетевой модели (NAM DSP) и пост-обработкой tone stack.
+     * 
+     * Модуль поддерживает загрузку внешних NAM моделей
+     */
+    class AmpModule final : public DSPModule
     {
     public:
         AmpModule();
 
-        void prepare(const juce::dsp::ProcessSpec& spec);
-        void reset();
-        void process(const juce::dsp::ProcessContextReplacing<float>& context);
+        void prepare(const juce::dsp::ProcessSpec& spec) override;
+        void reset() override;
+        void process(const juce::dsp::ProcessContextReplacing<float>& context) override;
 
-        // загрузка ИИ модели
-        bool loadModel();
+        /**
+         * @brief Загружает обученную нейросетевую модель усилителя (NAM).
+         *
+         * @param file Путь к NAM модели
+         * @return true если модель успешно загружена
+         */
+        bool loadModel(const juce::File& file);
 
-        void setGain (float val);
-        void setBass (float db);
-        void setMid (float db);
-        void setTreble (float db);
-        void setPresence (float db);
-        void setLevel (float db);
-        void setBypassed (bool v);
+        void setGain (const float newGainVal);
+        void setBass (const float newBassDb);
+        void setMid (const float newMidDb);
+        void setTreble (const float newTrebleDb);
+        void setPresence (const float newPresenceDb);
+        void setLevel (const float newLevelDb);
 
-        //bool hasModel() const { return model_ != nullptr; }
+        /**
+         * @brief Включает или отключает bypass.
+         * @param b true — сигнал проходит без обработки, false — обработка активна.
+         */
+        void setBypassed (const bool v) override;
+
         double getModelSampleRate() const;
 
     private:
+        static constexpr int kMaxModelChannels = 2;
+
         enum toneStackIndex {
             bassFilterIndex,    // [0]
             midFilterIndex,     // [1]
@@ -42,6 +63,16 @@ namespace DSP
         using FilterCoefs = juce::dsp::IIR::Coefficients<float>;
         using Duplicator = juce::dsp::ProcessorDuplicator<Filter, FilterCoefs>;
 
+        std::unique_ptr<juce::dsp::Oversampling<float>> oversampling_;
+
+        // Все модели nam имеют внутреннюю память
+        // Поэтому используется массив моделей
+        std::array<std::unique_ptr<nam::DSP>, 2> model_;
+        std::mutex modelMutex_;
+        
+        std::vector<NAM_SAMPLE*> inputPtrs_;
+        std::vector<NAM_SAMPLE*> outputPtrs_;
+
         juce::dsp::ProcessorChain<
             Duplicator,
             Duplicator,
@@ -50,24 +81,15 @@ namespace DSP
             juce::dsp::Gain<float>
         > toneStack_;
 
-        RTNeural::ModelT<float, 2, 2,
-            RTNeural::DenseT<float, 2, 16>,
-            RTNeural::TanhActivationT<float, 16>,
-            RTNeural::Conv1DT<float, 16, 16, 3, 2>,
-            RTNeural::TanhActivationT<float, 16>,
-            RTNeural::GRULayerT<float, 16, 48>,
-            RTNeural::DenseT<float, 48, 1>
-        > neuralNetT[2];
-
         double sampleRate_ = 48000.;
         int maxBlockSize_ = 512;
         std::atomic<bool> bypassed_ = false;
 
-        float gainNorm_ = 0.5f;
-        float bassVal_= 0.5f;
-        float midVal_= 0.5f;
-        float trebleVal_= 0.5f;
-        float presenceVal_ = 0.5f;
+        float gainNorm_ =    5.f;
+        float bassVal_=      5.f;
+        float midVal_=       5.f;
+        float trebleVal_=    5.f;
+        float presenceVal_ = 5.f;
 
         void updateFilters_();
     };

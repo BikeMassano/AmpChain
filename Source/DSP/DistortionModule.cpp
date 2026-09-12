@@ -9,7 +9,7 @@ namespace DSP
         (
             spec.numChannels,
             2,
-            juce::dsp::Oversampling<float>::filterHalfBandPolyphaseIIR
+            juce::dsp::Oversampling<float>::filterHalfBandFIREquiripple
         );
 
         oversampling_->initProcessing(spec.maximumBlockSize);
@@ -26,13 +26,13 @@ namespace DSP
 
         chain_.prepare(osSpec);
 
-        chain_.get<biasIndex>().setBias(0.2f);
+        chain_.get<biasIndex>().setBias(0.1f);
 
         chain_.get<preGainIndex>().setRampDurationSeconds(0.05f);
         chain_.get<postGainIndex>().setRampDurationSeconds(0.05f);
 
         sampleRate_ = osSpec.sampleRate;
-        *chain_.get<dcFilterIndex>().state = *FilterCoefs::makeHighPass(sampleRate_, 30.0f);
+        *chain_.get<dcFilterIndex>().state = *FilterCoefs::makeHighPass(sampleRate_, 20.0f);
         *chain_.get<filterIndex>().state = *FilterCoefs::makeLowPass(sampleRate_, 10000.0f);
     }
 
@@ -57,21 +57,27 @@ namespace DSP
         
     }
 
-    void DistortionModule::setTone(float cutoff)
+    void DistortionModule::setTone(const float newCutoffHz)
     {
         auto& filter = chain_.get<filterIndex>();
-        *filter.state = *FilterCoefs::makeLowPass(sampleRate_, cutoff);
+
+        *filter.state = *FilterCoefs::makeLowPass(
+            sampleRate_,
+            juce::jlimit(1600.f, 12000.f, newCutoffHz)
+        );
     }
 
-    void DistortionModule::setLevel(float db)
+    void DistortionModule::setLevel(const float newLevelDb)
     {
-        chain_.get<postGainIndex>().setGainDecibels(db);
+        chain_.get<postGainIndex>()
+            .setGainDecibels(juce::jlimit(-24.f, 24.f, newLevelDb));
     }
 
-    void DistortionModule::setDist(float db)
+    void DistortionModule::setDist(const float newDistDb)
     {
-        chain_.get<preGainIndex>().setGainDecibels(db);
+        chain_.get<preGainIndex>()
+            .setGainDecibels(juce::jlimit(0.f, 70.f, newDistDb));
     }
 
-    void DistortionModule::setBypassed(bool b) { bypassed_ = b; }
+    void DistortionModule::setBypassed(const bool b) { bypassed_ = b; }
 }

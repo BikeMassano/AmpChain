@@ -37,7 +37,7 @@ namespace DSP
         }
     }
 
-    void MonoModule::setEnabled(bool e) { enabled_ = e; }
+    void MonoModule::setEnabled(const bool e) { enabled_ = e; }
     bool MonoModule::getEnabled() { return enabled_; }
-    void MonoModule::setMode(MonoMode m) { mode_ = m; }
+    void MonoModule::setMode(const MonoMode m) { mode_ = m; }
 }

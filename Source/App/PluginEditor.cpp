@@ -3,16 +3,15 @@
 
 //==============================================================================
 AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudioProcessor& p)
-    : AudioProcessorEditor(&p), processorRef(p), pedalPage(p.apvts), ampPage(p.apvts), cabPage(p.apvts, [&p](const juce::File& file){
-        p.loadCabIR(file);
-    })
+    : AudioProcessorEditor(&p), processorRef(p), pedalPage(p.apvts), ampPage(p.apvts), cabPage(p.apvts)
 {
     juce::ignoreUnused(processorRef);
     setSize(1200, 800);
+    setOpaque(true);
     setResizeLimits(600, 400, 2400, 1600);
     // пропорции окна
     getConstrainer()->setFixedAspectRatio(1.4f);
-    setResizable(false, false);
+    setResizable(true, true);
 
     // ================= PANELS =================
     addAndMakeVisible(topBar);
@@ -39,6 +38,14 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
     for (int i = 0; i < presets.size(); ++i)
         presetBox.addItem(presets[i], i + 1);
 
+    auto current = processorRef.getPresetManager().getCurrentPreset();
+    if (!current.isEmpty())
+    {
+        int idx = presets.indexOf(current);
+        if (idx >= 0)
+            presetBox.setSelectedItemIndex(idx, juce::dontSendNotification);
+    }
+
     savePresetButton.onClick = [this]()
     {
         auto name = presetBox.getText().trim();
@@ -46,7 +53,15 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
 
         processorRef.getPresetManager().savePreset(name);
 
-        presetBox.addItem(name, presetBox.getNumItems() + 1);
+        presetBox.clear();
+        auto presets = processorRef.getPresetManager().getAllPresets();
+
+        for (int i = 0; i < presets.size(); ++i)
+            presetBox.addItem(presets[i], i + 1);
+
+        int idx = presets.indexOf(name);
+        if (idx >= 0)
+            presetBox.setSelectedItemIndex(idx, juce::dontSendNotification);
     };
 
     deletePresetButton.onClick = [this]()
@@ -74,7 +89,7 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
 
         auto presets = processorRef.getPresetManager().getAllPresets();
         if (index >= 0)
-            presetBox.setSelectedItemIndex(index);
+            presetBox.setSelectedItemIndex(index, juce::dontSendNotification);
     };
 
     nextPresetButton.onClick = [this]()
@@ -83,7 +98,7 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
 
         auto presets = processorRef.getPresetManager().getAllPresets();
         if (index >= 0)
-            presetBox.setSelectedItemIndex(index);
+            presetBox.setSelectedItemIndex(index, juce::dontSendNotification);
     };
 
     presetBox.setEditableText(true);
@@ -111,7 +126,6 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
     currentPage = Page::Amp;
     ampButton.setToggleState(true, juce::dontSendNotification);
 
-    // AMP
     ampButton.onClick = [this]()
     {
         currentPage = Page::Amp;
@@ -123,7 +137,6 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
         resized();
     };
 
-    // PEDAL
     pedalButton.onClick = [this]()
     {
         currentPage = Page::Pedal;
@@ -156,6 +169,9 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
     addAndMakeVisible(ampPage);
     addAndMakeVisible(cabPage);
 
+    ampPage.onModelLoad = [&p](const juce::File& f) { p.loadNamModel(f); };
+    cabPage.onIRLoad    = [&p](const juce::File& f) { p.loadCabIR(f); };
+
     startTimerHz(24);
 }
 
@@ -166,11 +182,15 @@ AudioPluginAudioProcessorEditor::~AudioPluginAudioProcessorEditor()
 //==============================================================================
 void AudioPluginAudioProcessorEditor::timerCallback()
 {
-    leftInMeter.setLevel(processorRef.getRmsInValue(0));
-    rightInMeter.setLevel(processorRef.getRmsInValue(1));
+    leftInMeter     .setLevel(processorRef.getRmsInValue(0));
+    rightInMeter    .setLevel(processorRef.getRmsInValue(1));
+    leftOutMeter    .setLevel(processorRef.getRmsOutValue(0));
+    rightOutMeter   .setLevel(processorRef.getRmsOutValue(1));
 
-    leftOutMeter.setLevel(processorRef.getRmsOutValue(0));
-    rightOutMeter.setLevel(processorRef.getRmsOutValue(1));
+    leftInMeter     .setPeak(processorRef.getPeakInValue(0));
+    rightInMeter    .setPeak(processorRef.getPeakInValue(1));
+    leftOutMeter    .setPeak(processorRef.getPeakOutValue(0));
+    rightOutMeter   .setPeak(processorRef.getPeakOutValue(1));
 
     repaint();
 };
@@ -229,38 +249,40 @@ void AudioPluginAudioProcessorEditor::resized()
 {
     auto area = getLocalBounds();
 
-    // ===== TOP / BOTTOM =====
     auto topArea = area.removeFromTop(50);
     auto bottomArea = area.removeFromBottom(50);
 
     topBar.setBounds(topArea);
-    auto buttonArea = topArea.removeFromRight(300).reduced(10);
 
-   {
-        const int arrowW  = 30;
-        const int actionW = 50;
-        const int boxW    = 220;
-        const int totalW  = arrowW + actionW + boxW + actionW + arrowW + 16; // 16 = отступы
-        const int h       = 30;
-        const int y       = (50 - h) / 2;
+    int rightButtonsWidth = getWidth() * EditorLayout::rightBlockWidth;
+
+    auto buttonArea = topArea.removeFromRight(rightButtonsWidth).reduced(10);
+
+    {
+        const int arrowW  = getWidth() * EditorLayout::presetArrowWidth;
+        const int actionW = getWidth() * EditorLayout::presetActionWidth;
+        const int boxW    = getWidth() * EditorLayout::presetBoxWidth;
+        const int totalW  = arrowW + actionW + boxW + actionW + arrowW + 16;
+        const int h       = topArea.getHeight() * 0.6;
+        const int y       = (topArea.getHeight() - h) / 2;
         const int startX  = (getWidth() - totalW) / 2;
 
         int x = startX;
-        prevPresetButton  .setBounds(x, y, arrowW,  h); x += arrowW  + 4;
-        deletePresetButton.setBounds(x, y, actionW, h); x += actionW + 4;
-        presetBox         .setBounds(x, y, boxW,    h); x += boxW    + 4;
-        savePresetButton  .setBounds(x, y, actionW, h); x += actionW + 4;
+
+        prevPresetButton  .setBounds(x, y, arrowW,  h); x += arrowW  + EditorLayout::presetGap;
+        deletePresetButton.setBounds(x, y, actionW, h); x += actionW + EditorLayout::presetGap;
+        presetBox         .setBounds(x, y, boxW,    h); x += boxW    + EditorLayout::presetGap;
+        savePresetButton  .setBounds(x, y, actionW, h); x += actionW + EditorLayout::presetGap;
         nextPresetButton  .setBounds(x, y, arrowW,  h);
     }
 
-    pedalButton.setBounds(buttonArea.removeFromLeft(90));
-    ampButton.setBounds(buttonArea.removeFromLeft(90));
-    cabButton.setBounds(buttonArea.removeFromLeft(90));
+    pedalButton .setBounds(buttonArea.removeFromLeft(getWidth() * EditorLayout::pedalBtnWidth));
+    ampButton   .setBounds(buttonArea.removeFromLeft(getWidth() * EditorLayout::pedalBtnWidth));
+    cabButton   .setBounds(buttonArea.removeFromLeft(getWidth() * EditorLayout::pedalBtnWidth));
 
     bottomBar.setBounds(bottomArea);
 
-    // ===== MAIN PAGE =====
-    auto mainArea = area; // после top/bottom
+    auto mainArea = area;
 
     if (currentPage == Page::Amp)
     {
@@ -284,14 +306,12 @@ void AudioPluginAudioProcessorEditor::resized()
         pedalPage.setBounds(mainArea);
     }
 
-    // ===== HORIZONTAL METERS (BOTTOM LEFT) =====
     auto bottomContent = bottomArea.reduced(10);
 
     const int meterHeight = 8;
     const int meterWidth  = 150;
     const int gap = 5;
 
-    // ================= LEFT SIDE (IN METERS) =================
     {
         const int startX = 10;
 
@@ -306,19 +326,16 @@ void AudioPluginAudioProcessorEditor::resized()
         rightInMeter.setBounds(rArea);
     }
 
-    // ================= MONO BUTTON (RIGHT OF INPUT METERS) =================
     {
-        const int startX = 10 + meterWidth + 10; // отступ + ширина метров + небольшой gap
+        const int startX = 10 + meterWidth + 10;
 
         auto monoArea = bottomContent.withTrimmedLeft(startX);
 
         monoButton.setBounds(monoArea.removeFromLeft(80).reduced(2));
     }
 
-    // ================= RIGHT SIDE (OUT METERS) =================
     {
         auto rightArea = bottomContent.withTrimmedRight(10); 
-        // можно подвинуть чуть от края
 
         rightArea = rightArea.removeFromRight(meterWidth);
 

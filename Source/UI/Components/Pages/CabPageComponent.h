@@ -7,23 +7,23 @@
 class CabPageComponent : public juce::Component
 {
 public:
-    CabPageComponent(juce::AudioProcessorValueTreeState& apvts,
-                    std::function<void(const juce::File&)> onIRLoaded)
-        : cabComponent_(apvts, std::move(onIRLoaded)) 
+    CabPageComponent(juce::AudioProcessorValueTreeState& apvts)
+        : cabComponent_(apvts) 
     {
+        cabComponent_.onIRLoad = [this](const juce::File& f)
+        {
+            if (onIRLoad) onIRLoad(f);
+        };
+
         addAndMakeVisible(cabComponent_);
     }
 
     void resized() override
     {
-        auto area = getLocalBounds().reduced(10);
-
-        juce::FlexBox mainRow;
-        mainRow.flexDirection = juce::FlexBox::Direction::row;
-
-        mainRow.items.add(juce::FlexItem(cabComponent_).withFlex(1).withMargin(10));
-        mainRow.performLayout(area);
+        cabComponent_.setBounds(getLocalBounds());
     }
+
+    std::function<void(const juce::File&)> onIRLoad;
 
 private:
     GUI::CabComponent cabComponent_;

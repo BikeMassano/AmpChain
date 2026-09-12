@@ -67,6 +67,9 @@ void PresetManager::loadPreset(const juce::String& presetName)
 
     valueTreeState_.replaceState(valueTreeToLoad);
     currentPreset_.setValue(presetName);
+
+    if (onPresetLoaded)
+        onPresetLoaded(valueTreeState_.state);
 }
 
 void PresetManager::deletePreset(const juce::String& presetName)
